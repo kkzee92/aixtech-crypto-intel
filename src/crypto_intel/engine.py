@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from crypto_intel.costs import round_trip_cost
 from crypto_intel.models import Candle, ExecutionMode, PaperFill, Signal
 from crypto_intel.risk import evaluate
 from crypto_intel.security import AuditLog, assert_paper_only
@@ -40,7 +41,7 @@ def run_once(
 
 
 def backtest(candles: list[Candle], *, audit: AuditLog | None = None) -> dict[str, float]:
-    """Walk-forward paper backtest. No costs model beyond a flat 8 bps haircut."""
+    """Walk-forward paper backtest. Cost is the declared class assumption."""
     log = audit or AuditLog()
     equity = 1.0
     peak = 1.0
@@ -52,7 +53,7 @@ def backtest(candles: list[Candle], *, audit: AuditLog | None = None) -> dict[st
         if fill.size_fraction <= 0:
             continue
         forward = candles[index + 1].close / candles[index].close - 1.0
-        pnl = fill.size_fraction * (forward - 0.0008)
+        pnl = fill.size_fraction * (forward - round_trip_cost(fill.asset_class))
         equity *= 1.0 + pnl
         peak = max(peak, equity)
         trades += 1
