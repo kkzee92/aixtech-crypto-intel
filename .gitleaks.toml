@@ -1,0 +1,3 @@
+title = "gitleaks config"
+[allowlist]
+paths = ['''docs/badges/''']

@@ -1,0 +1,10 @@
+__pycache__/
+.venv/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+.env
+*.pem
+*.key
