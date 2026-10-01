@@ -8,3 +8,4 @@ Rules for AI coding agents in this repository.
 - Do not weaken risk caps, the kill switch, or the coverage floor to make a change pass.
 - Tests must not call the network. Inject fetchers.
 - Commit trailers: `AI-Assisted: yes` and `Human-Review: pending`.
+- Do not remove the stress overlay, class cost model, or trade-credential refusal.
