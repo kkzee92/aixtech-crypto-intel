@@ -75,3 +75,24 @@ equity by class on the synthetic fixture only.
 - Live order routing, withdrawal, and trade API keys.
 - A broker adapter. That would be a separate human-approved system.
 - Claims about future returns. Scores describe the synthetic fixture.
+
+## Version 0.4 information overlays
+
+The class rules above still produce the primary idea. `crypto-intel intel`
+then applies three overlays. A failed overlay sets directional paper size to
+zero. It does not send an order.
+
+| Class | Confirmation | Size overlay |
+|---|---|---|
+| Major | Close still above the 8-bar EMA, and not in stress | Vol target 2%, cap 8% |
+| Large-cap alt | Breakout volume still at or above its base | Vol target 3%, cap 4% |
+| Stablecoin | No directional confirmation. Alerts stay alerts | Cap remains 0 |
+| DeFi | Calm realised vol and trend still intact | Vol target 2.5%, cap 2%. `*-LST` sleeve cap 1% |
+| Meme | Eight-bar extension still inside 40% | Vol target 5%, cap 0.5% |
+| L2 | Benchmark present, not in stress, excess return still positive | Vol target 2.8%, cap 3% |
+| RWA | Gap still inside 8% | Vol target 1.5%, cap 2% |
+| Perpetual | Funding still supports the carry or the crowded fade | Vol target 2%, long cap 2%, short cap 1% |
+
+Liquid staking is a sleeve inside DeFi, not a ninth class, so the fixture
+schema stays stable. Volatility targeting can shrink a size and cannot raise
+a class cap.

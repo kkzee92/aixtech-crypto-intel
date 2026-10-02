@@ -92,3 +92,12 @@ The loader still rejects anything that is not labelled SYNTHETIC.
 - Market-data credentials, if ever added, stay read-only and separate from any future trade credential.
 - Logs pass through `redact` before they are stored.
 - Default deployment is research. Promoting a signal to a broker is a separate, human-approved system.
+
+## Version 0.4 controls
+
+- Series quality gate refuses paper size on duplicate timestamps, zero volume, unsorted time, or a close-to-close jump above 40%.
+- Confirmation overlay is a second class-specific check. A failed check flattens a directional idea. Stablecoin alerts stay alerts.
+- Volatility targeting can only shrink a paper size, and liquid-staking symbols are capped at 1%.
+- Read-only market key *names* are classified and marked rotate after 90 days. Trade, withdrawal, and unqualified secret names are refused. No key material is generated or stored.
+- Clock skew above 120 seconds is rejected by the feed policy check. Retention for secrets and personal data is zero.
+- These checks do not open a socket and are not a certification.

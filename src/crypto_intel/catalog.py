@@ -12,7 +12,7 @@ import json
 
 from crypto_intel.models import AssetClass
 
-CATALOG_VERSION = "0.3.0"
+CATALOG_VERSION = "0.4.0"
 
 SPECS: dict[AssetClass, dict[str, object]] = {
     AssetClass.MAJOR: {
@@ -82,10 +82,27 @@ SPECS: dict[AssetClass, dict[str, object]] = {
 }
 
 
+OVERLAYS: dict[str, object] = {
+    "vol_target": {
+        "major": 0.02,
+        "large_cap_alt": 0.03,
+        "defi": 0.025,
+        "meme": 0.05,
+        "l2": 0.028,
+        "rwa": 0.015,
+        "perpetual": 0.02,
+    },
+    "lst_cap": 0.01,
+    "quality_jump": 0.40,
+    "read_key_max_age_days": 90,
+    "clock_skew_seconds": 120,
+}
+
+
 def parameter_digest() -> str:
     """Stable digest of the research catalog. A change means the rules changed."""
     material = json.dumps(
-        {"version": CATALOG_VERSION, "specs": {key.value: SPECS[key] for key in AssetClass}},
+        {"version": CATALOG_VERSION, "specs": {key.value: SPECS[key] for key in AssetClass}, "overlays": OVERLAYS},
         sort_keys=True,
     )
     return hashlib.sha256(material.encode()).hexdigest()

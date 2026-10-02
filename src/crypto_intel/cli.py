@@ -10,6 +10,7 @@ from pathlib import Path
 from crypto_intel.briefing import build_brief
 from crypto_intel.controls import control_report
 from crypto_intel.engine import backtest, run_once
+from crypto_intel.intel import inform
 from crypto_intel.market import group_by_symbol, load_candles
 from crypto_intel.models import ExecutionMode
 from crypto_intel.posture import Role, allow, attest_source, feed_status, mode_status
@@ -34,6 +35,8 @@ def build_parser() -> argparse.ArgumentParser:
     score = sub.add_parser("scorecard", help="paper scorecard by asset class on a synthetic fixture")
     score.add_argument("fixture")
     sub.add_parser("controls", help="defensive control catalog and parameter digest")
+    intel = sub.add_parser("intel", help="v0.4 quality, confirmation, and vol-targeted paper report")
+    intel.add_argument("fixture")
     return parser
 
 
@@ -103,6 +106,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     if args.command == "controls":
         print(json.dumps(control_report(), indent=2))
+        return 0
+    if args.command == "intel":
+        grouped = group_by_symbol(load_candles(args.fixture))
+        benchmark = grouped.get("ETH-USD")
+        rows = [
+            inform(series, benchmark=None if symbol == "ETH-USD" else benchmark) for symbol, series in grouped.items()
+        ]
+        print(json.dumps(rows, indent=2))
         return 0
     grouped = group_by_symbol(load_candles(args.fixture))
     if args.symbol not in grouped:

@@ -43,6 +43,11 @@ CONTROL_CATALOG: tuple[Control, ...] = (
     Control("DE.CM-3", "detect", "Audit chain", "SHA-256 hash chain over sequence, action, and redacted detail"),
     Control("RS.MI-1", "respond", "Kill switch", "operator engage; clear needs operator request plus auditor confirm"),
     Control("RC.RP-1", "recover", "Human clear", "kill switch cannot be cleared by the same role that requested it"),
+    Control("PR.DS-6", "protect", "Data retention", "secrets and personal data have zero retention"),
+    Control("PR.AC-6", "protect", "Read-key rotation", "read-only market names rotate at 90 days"),
+    Control("DE.CM-4", "detect", "Series quality", "duplicate time, zero volume, or 40 percent jump blocks size"),
+    Control("DE.CM-5", "detect", "Clock skew", "feed clock skew above 120 seconds is not accepted"),
+    Control("PR.IP-4", "protect", "Confirmation overlay", "directional ideas need a second class-specific check"),
 )
 
 
