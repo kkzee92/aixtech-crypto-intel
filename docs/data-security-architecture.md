@@ -1,6 +1,6 @@
 # Data security architecture
 
-Version 0.4. Research design, not a certified control set and not legal advice.
+Version 0.5. Research design, not a certified control set and not legal advice.
 Cyber controls here are defensive: classification, retention, rotation policy,
 integrity, and refusal of trade credentials. This repository does not generate
 keys, does not store secrets, and does not describe how to attack an exchange
@@ -19,10 +19,11 @@ or a wallet.
 ## Trust boundaries
 
 1. Fixture or injected public ticker, attested by label plus body hash.
-2. Quality gate, then class strategy, then confirmation, then risk gate.
+2. Quality gate, then class strategy, then confirmation, then v0.5 class overlay, then risk gate.
 3. Paper fill only. No order router.
-4. Audit chain. Operator kill switch. Auditor must confirm a clear.
+4. Audit chain and briefing digest. Operator kill switch. Auditor must confirm a clear.
 5. Trade and withdrawal credentials never cross the boundary.
+6. Fixture notes are data, not instructions. Instruction-override markers are flagged and not executed.
 
 ## Key ceremony
 
