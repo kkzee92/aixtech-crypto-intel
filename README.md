@@ -10,7 +10,7 @@ published from the connected account `kkzee92` because that connector cannot
 push to `zeekiankok92`.
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![version](https://img.shields.io/badge/version-0.4.0-blue)
+![version](https://img.shields.io/badge/version-0.5.0-blue)
 ![mode](https://img.shields.io/badge/execution-paper%20only-orange)
 ![Licence](https://img.shields.io/badge/licence-MIT-green)
 
@@ -25,6 +25,7 @@ push to `zeekiankok92`.
 - Scores each asset class on the synthetic fixture after declared costs.
 - Publishes a defensive control catalog, egress allowlist, and two-person kill-switch clear.
 - v0.4 adds a data-quality gate, a per-class confirmation veto, volatility-targeted paper size, an LST sleeve cap, and read-key rotation / retention checks.
+- v0.5 adds a class enhancement overlay that can only flatten, a cross-asset stress consensus, funding dispersion, a fixture schema check, and a hashed information-desk briefing.
 - Backtests on **synthetic** candles only. Network access is injectable and unused by default.
 
 | Asset class | Research rule | Risk cap | Cost |
@@ -53,6 +54,7 @@ PYTHONPATH=src python -m crypto_intel posture fixtures/candles_synthetic.json
 PYTHONPATH=src python -m crypto_intel scorecard fixtures/candles_synthetic.json
 PYTHONPATH=src python -m crypto_intel controls
 PYTHONPATH=src python -m crypto_intel intel fixtures/candles_synthetic.json
+PYTHONPATH=src python -m crypto_intel desk fixtures/candles_synthetic.json
 PYTHONPATH=src python -m crypto_intel demo fixtures/candles_synthetic.json
 ```
 
@@ -69,6 +71,7 @@ The fixture is labelled `SYNTHETIC` and is not a market history.
 7. PDPA-style tripwire over fixtures and docs.
 8. Ruff lint (including bandit-style `S` rules), format, pytest coverage floor, gitleaks in CI.
 9. v0.4 quality gate, confirmation overlay, 90-day read-key rotation policy, and zero retention for secrets.
+10. v0.5 class overlays cannot raise size. Stress in half the book stands directional ideas aside. Fixture notes are scanned for instruction-override markers. Desk output is hash-chained by digest.
 
 ## Honesty
 
