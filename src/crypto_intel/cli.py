@@ -9,6 +9,7 @@ from pathlib import Path
 
 from crypto_intel.briefing import build_brief
 from crypto_intel.controls import control_report
+from crypto_intel.desk import build_desk
 from crypto_intel.engine import backtest, run_once
 from crypto_intel.intel import inform
 from crypto_intel.market import group_by_symbol, load_candles
@@ -37,6 +38,8 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("controls", help="defensive control catalog and parameter digest")
     intel = sub.add_parser("intel", help="v0.4 quality, confirmation, and vol-targeted paper report")
     intel.add_argument("fixture")
+    desk = sub.add_parser("desk", help="v0.5 cross-asset information desk with class overlays")
+    desk.add_argument("fixture")
     return parser
 
 
@@ -114,6 +117,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             inform(series, benchmark=None if symbol == "ETH-USD" else benchmark) for symbol, series in grouped.items()
         ]
         print(json.dumps(rows, indent=2))
+        return 0
+    if args.command == "desk":
+        payload = json.loads(Path(args.fixture).read_text(encoding="utf-8"))
+        grouped = group_by_symbol(load_candles(args.fixture))
+        print(json.dumps(build_desk(grouped, fixture=payload), indent=2))
         return 0
     grouped = group_by_symbol(load_candles(args.fixture))
     if args.symbol not in grouped:
