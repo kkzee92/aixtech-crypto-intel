@@ -12,7 +12,7 @@ import json
 
 from crypto_intel.models import AssetClass
 
-CATALOG_VERSION = "0.4.0"
+CATALOG_VERSION = "0.5.0"
 
 SPECS: dict[AssetClass, dict[str, object]] = {
     AssetClass.MAJOR: {
@@ -96,6 +96,10 @@ OVERLAYS: dict[str, object] = {
     "quality_jump": 0.40,
     "read_key_max_age_days": 90,
     "clock_skew_seconds": 120,
+    "relative_threshold": 0.04,
+    "relative_sleeve_cap": 0.02,
+    "breadth_halt": 0.5,
+    "stablecoin_contagion_count": 2,
 }
 
 

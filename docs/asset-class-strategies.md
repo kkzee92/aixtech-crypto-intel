@@ -96,3 +96,24 @@ zero. It does not send an order.
 Liquid staking is a sleeve inside DeFi, not a ninth class, so the fixture
 schema stays stable. Volatility targeting can shrink a size and cannot raise
 a class cap.
+
+## Version 0.5 book and pair overlays
+
+The class rules still produce the primary idea. `crypto-intel cross` applies
+a book overlay after the v0.4 information path.
+
+| Class | v0.5 enhancement | Effect |
+|---|---|---|
+| Major | ETH/BTC six-bar relative sleeve, 4% threshold, 2% cap | Names the leader. Stands aside if either leg is in stress. Does not short the laggard |
+| Large-cap alt | Beta spillover | Directional size goes to zero when BTC-USD is in stress |
+| Stablecoin | Basket contagion | Two or more peg watches become a book alert. Size stays zero |
+| DeFi | Beta spillover, including the LST sleeve | Directional size goes to zero in benchmark stress |
+| Meme | Beta spillover on top of the chase filter | Directional size goes to zero in benchmark stress |
+| L2 | Beta spillover plus the existing benchmark check | Either stress condition blocks the relative-strength idea |
+| RWA | Breadth halt only | Not in the crypto-beta cluster. Halted when half of non-stable series are in stress |
+| Perpetual | Beta spillover | Carry and crowded-fade paper size go to zero in benchmark stress |
+
+A breadth halt fires when at least half of the non-stable series are in
+stress. It overrides every directional idea, including RWA. None of these
+overlays can place or route an order.
+

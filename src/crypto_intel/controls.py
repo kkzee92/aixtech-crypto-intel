@@ -48,6 +48,13 @@ CONTROL_CATALOG: tuple[Control, ...] = (
     Control("DE.CM-4", "detect", "Series quality", "duplicate time, zero volume, or 40 percent jump blocks size"),
     Control("DE.CM-5", "detect", "Clock skew", "feed clock skew above 120 seconds is not accepted"),
     Control("PR.IP-4", "protect", "Confirmation overlay", "directional ideas need a second class-specific check"),
+    Control(
+        "DE.CM-6",
+        "detect",
+        "Cross-asset overlay",
+        "benchmark stress, breadth, and stablecoin contagion veto paper size",
+    ),
+    Control("PR.DS-7", "protect", "Data classification", "unlabelled, personal, and secret payloads are refused"),
 )
 
 

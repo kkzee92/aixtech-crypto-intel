@@ -38,6 +38,15 @@ There is no trader role. Promoting a signal to a broker is a separate system.
 | Symbol, OHLCV | Public market | Synthetic in this repo |
 | Funding rate | Public market | Research feature only |
 | Source label | Integrity | Must be SYNTHETIC or PUBLIC_READ |
+
+## Version 0.5
+
+Cross-asset vetoes and the STRIDE map sit in front of any future live path,
+which this repository still does not have. Data classification refuses
+unlabelled, personal, and secret payloads. See
+[docs/threat-model.md](threat-model.md) and
+[docs/data-classification.md](data-classification.md). `crypto-intel threats`
+checks that every mapped control id exists in the catalog.
 | Read-only market key | Secret, optional | Name must say read, market, or public. Never logged |
 | Trade or withdrawal key | Secret | Refused |
 | Wallet address | Sensitive identifier | Redacted, banned from fixtures |

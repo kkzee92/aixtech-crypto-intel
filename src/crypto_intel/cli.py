@@ -9,13 +9,17 @@ from pathlib import Path
 
 from crypto_intel.briefing import build_brief
 from crypto_intel.controls import control_report
+from crypto_intel.cross_asset import apply_cross_overlay, basket_report
 from crypto_intel.engine import backtest, run_once
 from crypto_intel.intel import inform
 from crypto_intel.market import group_by_symbol, load_candles
 from crypto_intel.models import ExecutionMode
 from crypto_intel.posture import Role, allow, attest_source, feed_status, mode_status
+from crypto_intel.relative import major_relative
 from crypto_intel.scorecard import score_book
 from crypto_intel.security import AuditLog
+from crypto_intel.threats import threat_report
+from crypto_intel.walkforward import split_walkforward
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -37,6 +41,12 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("controls", help="defensive control catalog and parameter digest")
     intel = sub.add_parser("intel", help="v0.4 quality, confirmation, and vol-targeted paper report")
     intel.add_argument("fixture")
+    cross = sub.add_parser("cross", help="v0.5 cross-asset spillover, contagion, and major relative sleeve")
+    cross.add_argument("fixture")
+    sub.add_parser("threats", help="STRIDE control map for the paper information system")
+    walk = sub.add_parser("walkforward", help="chronological paper split for one symbol")
+    walk.add_argument("fixture")
+    walk.add_argument("--symbol", required=True)
     return parser
 
 
@@ -114,6 +124,28 @@ def main(argv: Sequence[str] | None = None) -> int:
             inform(series, benchmark=None if symbol == "ETH-USD" else benchmark) for symbol, series in grouped.items()
         ]
         print(json.dumps(rows, indent=2))
+        return 0
+    if args.command == "cross":
+        grouped = group_by_symbol(load_candles(args.fixture))
+        report = basket_report(grouped)
+        benchmark = grouped.get("ETH-USD")
+        rows = []
+        for symbol, series in grouped.items():
+            row = inform(series, benchmark=None if symbol == "ETH-USD" else benchmark)
+            rows.append(apply_cross_overlay(row, report))
+        relative = None
+        if "BTC-USD" in grouped and "ETH-USD" in grouped:
+            relative = major_relative(grouped["BTC-USD"], grouped["ETH-USD"])
+        print(json.dumps({"basket": report, "relative": relative, "rows": rows}, indent=2))
+        return 0
+    if args.command == "threats":
+        print(json.dumps(threat_report(), indent=2))
+        return 0
+    if args.command == "walkforward":
+        grouped = group_by_symbol(load_candles(args.fixture))
+        if args.symbol not in grouped:
+            raise SystemExit(f"unknown symbol {args.symbol}")
+        print(json.dumps(split_walkforward(grouped[args.symbol]), indent=2))
         return 0
     grouped = group_by_symbol(load_candles(args.fixture))
     if args.symbol not in grouped:
