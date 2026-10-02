@@ -48,6 +48,9 @@ CONTROL_CATALOG: tuple[Control, ...] = (
     Control("DE.CM-4", "detect", "Series quality", "duplicate time, zero volume, or 40 percent jump blocks size"),
     Control("DE.CM-5", "detect", "Clock skew", "feed clock skew above 120 seconds is not accepted"),
     Control("PR.IP-4", "protect", "Confirmation overlay", "directional ideas need a second class-specific check"),
+    Control("PR.IP-5", "protect", "Class enhancement cap", "v0.5 overlays flatten paper ideas and cannot raise size"),
+    Control("DE.CM-6", "detect", "Fixture note scan", "instruction-override markers in fixture notes are flagged"),
+    Control("ID.RA-1", "identify", "Cross-asset stress", "stress in half the book stands directional ideas aside"),
 )
 
 
