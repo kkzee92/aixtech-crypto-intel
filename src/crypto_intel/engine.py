@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from crypto_intel.costs import round_trip_cost
-from crypto_intel.models import Candle, ExecutionMode, PaperFill, Signal
+from crypto_intel.models import Candle, ExecutionMode, PaperFill, Side, Signal
 from crypto_intel.risk import evaluate
 from crypto_intel.security import AuditLog, assert_paper_only
 from crypto_intel.strategies import signal_for
@@ -50,10 +50,11 @@ def backtest(candles: list[Candle], *, audit: AuditLog | None = None) -> dict[st
         window = candles[: index + 1]
         drawdown = 1.0 - equity / peak
         _, fill = run_once(window, audit=log, drawdown=drawdown)
-        if fill.size_fraction <= 0:
+        if fill.size_fraction <= 0 or fill.side not in {Side.LONG, Side.SHORT}:
             continue
+        direction = 1.0 if fill.side is Side.LONG else -1.0
         forward = candles[index + 1].close / candles[index].close - 1.0
-        pnl = fill.size_fraction * (forward - round_trip_cost(fill.asset_class))
+        pnl = fill.size_fraction * (direction * forward - round_trip_cost(fill.asset_class))
         equity *= 1.0 + pnl
         peak = max(peak, equity)
         trades += 1

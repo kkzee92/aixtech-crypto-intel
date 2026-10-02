@@ -56,8 +56,8 @@ PLAYBOOK: dict[AssetClass, dict[str, str]] = {
     },
     AssetClass.PERPETUAL: {
         "hypothesis": "Negative funding with contained drift is a carry observation, not a forecast.",
-        "entry": "Funding at or below -5 bps and absolute six-bar drift under 4%.",
-        "invalidation": "Funding at or above 10 bps, or drift no longer contained.",
+        "entry": "Negative funding with drift inside 4%. Crowded funding plus drift above 4% is a paper short fade.",
+        "invalidation": "Crowded funding without extended drift is an alert, not a fade.",
         "horizon": "8 bars",
     },
 }
@@ -208,8 +208,10 @@ def _rwa(candles: list[Candle], closes: list[float], regime: Regime) -> Signal:
 def _perpetual(candles: list[Candle], closes: list[float]) -> Signal:
     funding = candles[-1].funding_rate
     drift = closes[-1] / closes[-6] - 1.0
+    if funding >= 0.001 and drift > 0.04:
+        return _base(candles, Side.SHORT, 0.68, "perp crowded-funding fade research; hard size cap", 0.01, 4)
     if funding >= 0.001:
-        return _base(candles, Side.ALERT, 0.7, "perp funding crowded: monitor, no carry", 0.0, 1)
+        return _base(candles, Side.ALERT, 0.7, "perp funding crowded: monitor, no fade", 0.0, 1)
     if funding <= -0.0005 and abs(drift) < 0.04:
         return _base(candles, Side.LONG, 0.75, "perp funding carry: negative funding, basis contained", 0.02, 8)
     if funding <= -0.0005:

@@ -10,7 +10,7 @@ published from the connected account `kkzee92` because that connector cannot
 push to `zeekiankok92`.
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![version](https://img.shields.io/badge/version-0.2.0-blue)
+![version](https://img.shields.io/badge/version-0.3.0-blue)
 ![mode](https://img.shields.io/badge/execution-paper%20only-orange)
 ![Licence](https://img.shields.io/badge/licence-MIT-green)
 
@@ -21,6 +21,9 @@ push to `zeekiankok92`.
 - Scores a signal, then a risk gate that can shrink or refuse it.
 - Applies a declared round-trip cost by asset class in the paper backtest.
 - Writes a hash-chained audit log, attests fixture sources, and redacts secret-like strings.
+- Scales paper sizes to a book gross cap and a crypto-beta cluster cap.
+- Scores each asset class on the synthetic fixture after declared costs.
+- Publishes a defensive control catalog, egress allowlist, and two-person kill-switch clear.
 - Backtests on **synthetic** candles only. Network access is injectable and unused by default.
 
 | Asset class | Research rule | Risk cap | Cost |
@@ -32,7 +35,7 @@ push to `zeekiankok92`.
 | Meme | Qualified burst, chase filter, 3-bar horizon | 0.5% | 45 bps |
 | L2 | Relative strength versus a non-stress benchmark | 3% | 16 bps |
 | RWA | Slow trend; halt on an 8% gap or stress | 2% | 12 bps |
-| Perpetual | Negative-funding carry if drift is contained; crowded funding is an alert | 2% | 10 bps |
+| Perpetual | Negative-funding carry if drift is contained; crowded funding with extended drift is a 1% paper short fade | 2% / 1% short | 10 bps |
 
 Full notes: [docs/asset-class-strategies.md](docs/asset-class-strategies.md).
 Security design: [docs/security-architecture.md](docs/security-architecture.md).
@@ -46,6 +49,8 @@ python scripts/make_fixtures.py
 PYTHONPATH=src python -m crypto_intel scan fixtures/candles_synthetic.json
 PYTHONPATH=src python -m crypto_intel brief fixtures/candles_synthetic.json
 PYTHONPATH=src python -m crypto_intel posture fixtures/candles_synthetic.json
+PYTHONPATH=src python -m crypto_intel scorecard fixtures/candles_synthetic.json
+PYTHONPATH=src python -m crypto_intel controls
 PYTHONPATH=src python -m crypto_intel demo fixtures/candles_synthetic.json
 ```
 
@@ -57,8 +62,10 @@ The fixture is labelled `SYNTHETIC` and is not a market history.
 2. Trade and withdrawal credential names are refused. No role can place an order.
 3. Class size caps, confidence floors, kill switch, drawdown halt, RWA gap halt, stress overlay.
 4. Hash-chained audit log, source attestation, feed jump and staleness checks.
-5. PDPA-style tripwire over fixtures and docs.
-6. Ruff lint (including bandit-style `S` rules), format, pytest coverage floor, gitleaks in CI.
+5. Book gross cap (12%) and crypto-beta cluster cap (10%). Stablecoins never take risk.
+6. Egress allowlist and refused order or withdrawal paths. Dual-control kill-switch clear.
+7. PDPA-style tripwire over fixtures and docs.
+8. Ruff lint (including bandit-style `S` rules), format, pytest coverage floor, gitleaks in CI.
 
 ## Honesty
 

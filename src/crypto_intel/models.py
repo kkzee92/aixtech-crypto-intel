@@ -19,6 +19,7 @@ class AssetClass(str, Enum):
 
 class Side(str, Enum):
     LONG = "long"
+    SHORT = "short"
     FLAT = "flat"
     ALERT = "alert"
 

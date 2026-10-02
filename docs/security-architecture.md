@@ -1,7 +1,8 @@
 # Security architecture
 
-Version 0.2 extends the control plane. It is still a research design, not a
-certified security product and not legal advice.
+Version 0.3 extends the control plane. It is still a research design, not a
+certified security product and not legal advice. Control ids are a reviewer
+map, not a NIST certification.
 
 ## Trust boundaries
 
@@ -78,6 +79,13 @@ The loader still rejects anything that is not labelled SYNTHETIC.
 3. If a secret was pasted, rotate it outside this repo and purge it from history.
 4. Do not open a public issue that contains a secret or a wallet address.
 5. A human reviews before the kill switch is cleared.
+
+## Version 0.3 controls
+
+- Parameter catalog digest (`catalog.parameter_digest`) is printed by `crypto-intel controls`.
+- Egress policy allows only public market hosts over HTTPS and refuses paths containing order, withdraw, transfer, or `/sapi/`. The check does not open a socket.
+- Kill-switch clear is dual control: the operator requests, the auditor confirms. The same role cannot both request and confirm.
+- Book caps sit after the class risk gate so one asset class cannot consume the whole research budget.
 
 ## Operating rules
 

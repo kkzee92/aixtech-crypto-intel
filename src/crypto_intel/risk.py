@@ -50,11 +50,15 @@ def evaluate(
     size = min(signal.size_fraction, cap)
     if signal.side is Side.ALERT:
         reasons.append("monitor only, no order")
+    if signal.side is Side.SHORT and signal.asset_class is not AssetClass.PERPETUAL:
+        reasons.append("short research is perpetual-only")
+    if signal.side is Side.SHORT:
+        size = min(size, 0.01)
     if signal.side is Side.FLAT:
         size = 0.0
     if reasons:
         return RiskDecision(False, 0.0, tuple(reasons))
-    if size <= 0 and signal.side is Side.LONG:
+    if size <= 0 and signal.side in {Side.LONG, Side.SHORT}:
         reasons.append("class size cap is zero")
         return RiskDecision(False, 0.0, tuple(reasons))
     return RiskDecision(True, size, ("within class limits",))

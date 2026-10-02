@@ -3,6 +3,8 @@
 These rules are research heuristics. Each class has an edge hypothesis, an
 entry, an invalidation, a horizon, and a size cap. They are not a promise of
 return. Version 0.2 adds a shared regime overlay and class cost assumptions.
+Version 0.3 adds a versioned parameter catalog, a book exposure overlay, and a
+paper short fade for crowded perpetual funding.
 
 Regime labels, from `regime.py`:
 
@@ -55,9 +57,18 @@ Cost 12 bps.
 ## Perpetual
 
 Hypothesis: negative funding with contained spot drift is a carry observation.
-Funding at or above 10 bps is a crowded-funding alert, not a short. Drift
-outside 4% blocks the carry even if funding is negative. Cap 2%. Cost 10 bps.
-This does not model liquidation, funding intervals, or exchange risk.
+Funding at or above 10 bps with six-bar drift above 4% is a paper short fade,
+capped at 1%. Crowded funding without that extension stays an alert. Drift
+outside 4% blocks the carry even if funding is negative. Long cap 2%. Cost
+10 bps. This does not model liquidation, funding intervals, or exchange risk.
+
+## Book overlay
+
+After the class risk gate, `book.allocate` scales open paper sizes so gross
+exposure stays at or under 12% and the crypto-beta cluster (major, large-cap
+alt, DeFi, meme, L2) stays at or under 10%. RWA and perpetual buckets stay at
+or under 2%. Stablecoin alerts take no budget. The scorecard reports paper
+equity by class on the synthetic fixture only.
 
 ## Still out of scope
 
