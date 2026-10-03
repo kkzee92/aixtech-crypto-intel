@@ -7,6 +7,7 @@ import json
 from collections.abc import Sequence
 from pathlib import Path
 
+from crypto_intel.automation import pipeline_manifest
 from crypto_intel.briefing import build_brief
 from crypto_intel.catalog import parameter_digest
 from crypto_intel.controls import control_report
@@ -21,6 +22,8 @@ from crypto_intel.posture import Role, allow, attest_source, feed_status, mode_s
 from crypto_intel.relative import major_relative
 from crypto_intel.scorecard import score_book
 from crypto_intel.security import AuditLog
+from crypto_intel.sleeves import apply_sleeve
+from crypto_intel.supply import architecture_report
 from crypto_intel.threats import threat_report
 from crypto_intel.walkforward import split_walkforward
 
@@ -53,6 +56,10 @@ def build_parser() -> argparse.ArgumentParser:
     enhance = sub.add_parser("enhance", help="v0.6 per-class research overlay; size can only shrink")
     enhance.add_argument("fixture")
     sub.add_parser("cyber", help="v0.6 key-scope policy, ceremony checklist, incident playbook")
+    sub.add_parser("pipeline", help="v0.7 offline information-pipeline manifest")
+    sleeve = sub.add_parser("sleeve", help="v0.7 per-class sleeve; size can only shrink")
+    sleeve.add_argument("fixture")
+    sub.add_parser("supply", help="v0.7 data-flow, role, and supply-chain snapshot")
     return parser
 
 
@@ -182,6 +189,30 @@ def main(argv: Sequence[str] | None = None) -> int:
                 indent=2,
             )
         )
+        return 0
+    if args.command == "pipeline":
+        print(json.dumps(pipeline_manifest(), indent=2))
+        return 0
+    if args.command == "supply":
+        print(json.dumps(architecture_report(), indent=2))
+        return 0
+    if args.command == "sleeve":
+        grouped = group_by_symbol(load_candles(args.fixture))
+        benchmark = grouped.get("ETH-USD")
+        rows = []
+        for symbol, series in grouped.items():
+            row = inform(series, benchmark=None if symbol == "ETH-USD" else benchmark)
+            proposed = float(row["size_fraction"])
+            side = Side(str(row["side"]))
+            sleeved = apply_sleeve(
+                series,
+                proposed_size=proposed,
+                side=side,
+                benchmark=None if symbol == "ETH-USD" else benchmark,
+            )
+            sleeved["prior_size"] = proposed
+            rows.append(sleeved)
+        print(json.dumps(rows, indent=2))
         return 0
     grouped = group_by_symbol(load_candles(args.fixture))
     if args.symbol not in grouped:

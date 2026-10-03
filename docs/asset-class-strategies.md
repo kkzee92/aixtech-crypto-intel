@@ -117,3 +117,20 @@ A breadth halt fires when at least half of the non-stable series are in
 stress. It overrides every directional idea, including RWA. None of these
 overlays can place or route an order.
 
+## Version 0.7 sleeves
+
+`crypto-intel sleeve` is a third pass after the class rule. It can only shrink
+paper size. See [v07-automation-and-security.md](v07-automation-and-security.md).
+
+| Class | Sleeve | Effect |
+|---|---|---|
+| Major | ATR expansion haircut | Last bar range above 2x the prior median halves size |
+| Large-cap alt | Relative-lag veto | Missing benchmark, or lagging it by more than 2%, zeroes size |
+| Stablecoin | Peg-dispersion watch | Bar range of 40 bps or more is a watch. Size stays zero |
+| DeFi | Protocol-gap halt | Open gap above 5% zeroes size |
+| Meme | Volume-decay haircut | Volume below half the recent peak halves size |
+| L2 | Sequencer-gap proxy | Open gap above 4% zeroes size |
+| RWA | Stale-print haircut | Three identical closes halve size |
+| Perpetual | Funding-sign flip | A sign change versus the prior bar zeroes carry or fade size |
+
+
