@@ -15,10 +15,12 @@ from crypto_intel.cyber import incident_playbook, key_ceremony, research_packet
 from crypto_intel.engine import backtest, run_once
 from crypto_intel.enhance import apply_class_enhancement
 from crypto_intel.intel import inform
+from crypto_intel.liquidity import apply_liquidity_gate
 from crypto_intel.market import group_by_symbol, load_candles
 from crypto_intel.models import ExecutionMode, Side
 from crypto_intel.posture import Role, allow, attest_source, feed_status, mode_status
 from crypto_intel.relative import major_relative
+from crypto_intel.residency import residency_report
 from crypto_intel.scorecard import score_book
 from crypto_intel.security import AuditLog
 from crypto_intel.threats import threat_report
@@ -53,6 +55,9 @@ def build_parser() -> argparse.ArgumentParser:
     enhance = sub.add_parser("enhance", help="v0.6 per-class research overlay; size can only shrink")
     enhance.add_argument("fixture")
     sub.add_parser("cyber", help="v0.6 key-scope policy, ceremony checklist, incident playbook")
+    liquidity = sub.add_parser("liquidity", help="v0.7 per-class liquidity gate; size can only shrink")
+    liquidity.add_argument("fixture")
+    sub.add_parser("residency", help="v0.7 data residency, encryption, and vendor checklist")
     return parser
 
 
@@ -170,6 +175,23 @@ def main(argv: Sequence[str] | None = None) -> int:
             enhanced["prior_size"] = proposed
             rows.append(enhanced)
         print(json.dumps(rows, indent=2))
+        return 0
+
+    if args.command == "liquidity":
+        grouped = group_by_symbol(load_candles(args.fixture))
+        benchmark = grouped.get("ETH-USD")
+        rows = []
+        for symbol, series in grouped.items():
+            row = inform(series, benchmark=None if symbol == "ETH-USD" else benchmark)
+            proposed = float(row["size_fraction"])
+            side = Side(str(row["side"]))
+            gated = apply_liquidity_gate(series, proposed_size=proposed, side=side)
+            gated["prior_size"] = proposed
+            rows.append(gated)
+        print(json.dumps(rows, indent=2))
+        return 0
+    if args.command == "residency":
+        print(json.dumps(residency_report(), indent=2))
         return 0
     if args.command == "cyber":
         print(

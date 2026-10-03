@@ -8,6 +8,7 @@
 | 2026-10-02 | v0.4 quality gate, per-class confirmation, vol-targeted size, LST sleeve, data-security retention and rotation policy | Grok, xAI | pending |
 | 2026-10-03 | v0.5 cross-asset spillover, stablecoin contagion, ETH/BTC relative sleeve, walk-forward split, data classification, STRIDE map | Grok, xAI | pending |
 | 2026-10-03 | v0.6 per-class size-shrink enhancements, key-scope allowlist, ceremony checklist, incident playbook | Grok, xAI | pending |
+| 2026-10-04 | v0.7 per-class liquidity gate, residency allowlist, encryption policy, vendor diligence checklist | Grok, xAI | pending |
 
 Reference process: zeekiankok92/aixtech-agent-harness-demo.
 The connected account cannot push to that repository, so this system lives on kkzee92/aixtech-crypto-intel.
