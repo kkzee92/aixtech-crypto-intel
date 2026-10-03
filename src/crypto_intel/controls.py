@@ -55,6 +55,9 @@ CONTROL_CATALOG: tuple[Control, ...] = (
         "benchmark stress, breadth, and stablecoin contagion veto paper size",
     ),
     Control("PR.DS-7", "protect", "Data classification", "unlabelled, personal, and secret payloads are refused"),
+    Control("PR.AC-7", "protect", "Key scope allowlist", "only market_read and public_ticker; trade scopes refused"),
+    Control("RS.RP-1", "respond", "Incident playbook", "contain with kill switch; no automated live resume"),
+    Control("PR.IP-5", "protect", "Class enhancement", "per-class overlay can shrink paper size and cannot raise it"),
 )
 
 
