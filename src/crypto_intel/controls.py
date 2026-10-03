@@ -58,6 +58,8 @@ CONTROL_CATALOG: tuple[Control, ...] = (
     Control("PR.AC-7", "protect", "Key scope allowlist", "only market_read and public_ticker; trade scopes refused"),
     Control("RS.RP-1", "respond", "Incident playbook", "contain with kill switch; no automated live resume"),
     Control("PR.IP-5", "protect", "Class enhancement", "per-class overlay can shrink paper size and cannot raise it"),
+    Control("PR.DS-8", "protect", "Data residency", "research labels and declared regions only; personal payloads refused"),
+    Control("DE.CM-7", "detect", "Liquidity gate", "thin tape or wide range can shrink paper size and cannot raise it"),
 )
 
 

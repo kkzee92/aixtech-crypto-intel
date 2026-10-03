@@ -117,3 +117,21 @@ A breadth halt fires when at least half of the non-stable series are in
 stress. It overrides every directional idea, including RWA. None of these
 overlays can place or route an order.
 
+## Version 0.7 liquidity and session gates
+
+`crypto-intel liquidity` applies a third research pass. It can shrink paper
+size and cannot raise a class cap.
+
+| Class | v0.7 gate | Effect |
+|---|---|---|
+| Major | Last volume below half the prior median | Paper size halved |
+| Large-cap alt | Bar range above 3% | Directional size vetoed |
+| Stablecoin | Any proposed size | Size stays zero |
+| DeFi | Bar range above 5% | Slippage-proxy veto |
+| Meme | Last volume below 1,000 | Thin-print veto |
+| L2 | Last volume below 0.6x the prior median | Paper size halved |
+| RWA | Last volume below half the prior median | Off-session proxy haircut |
+| Perpetual | Funding at or above 10 bps with volume above 2x median | Crowded-tape haircut |
+
+The residency command is a policy check, not a strategy. Personal payloads,
+unknown regions, and live trading stay refused.
