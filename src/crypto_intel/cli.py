@@ -8,12 +8,15 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from crypto_intel.briefing import build_brief
+from crypto_intel.catalog import parameter_digest
 from crypto_intel.controls import control_report
 from crypto_intel.cross_asset import apply_cross_overlay, basket_report
+from crypto_intel.cyber import incident_playbook, key_ceremony, research_packet
 from crypto_intel.engine import backtest, run_once
+from crypto_intel.enhance import apply_class_enhancement
 from crypto_intel.intel import inform
 from crypto_intel.market import group_by_symbol, load_candles
-from crypto_intel.models import ExecutionMode
+from crypto_intel.models import ExecutionMode, Side
 from crypto_intel.posture import Role, allow, attest_source, feed_status, mode_status
 from crypto_intel.relative import major_relative
 from crypto_intel.scorecard import score_book
@@ -47,6 +50,9 @@ def build_parser() -> argparse.ArgumentParser:
     walk = sub.add_parser("walkforward", help="chronological paper split for one symbol")
     walk.add_argument("fixture")
     walk.add_argument("--symbol", required=True)
+    enhance = sub.add_parser("enhance", help="v0.6 per-class research overlay; size can only shrink")
+    enhance.add_argument("fixture")
+    sub.add_parser("cyber", help="v0.6 key-scope policy, ceremony checklist, incident playbook")
     return parser
 
 
@@ -146,6 +152,36 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.symbol not in grouped:
             raise SystemExit(f"unknown symbol {args.symbol}")
         print(json.dumps(split_walkforward(grouped[args.symbol]), indent=2))
+        return 0
+    if args.command == "enhance":
+        grouped = group_by_symbol(load_candles(args.fixture))
+        benchmark = grouped.get("ETH-USD")
+        rows = []
+        for symbol, series in grouped.items():
+            row = inform(series, benchmark=None if symbol == "ETH-USD" else benchmark)
+            proposed = float(row["size_fraction"])
+            side = Side(str(row["side"]))
+            enhanced = apply_class_enhancement(
+                series,
+                proposed_size=proposed,
+                side=side,
+                benchmark=None if symbol == "ETH-USD" else benchmark,
+            )
+            enhanced["prior_size"] = proposed
+            rows.append(enhanced)
+        print(json.dumps(rows, indent=2))
+        return 0
+    if args.command == "cyber":
+        print(
+            json.dumps(
+                {
+                    "ceremony": key_ceremony(),
+                    "incident": incident_playbook(),
+                    "packet": research_packet(parameter_digest(), "SYNTHETIC"),
+                },
+                indent=2,
+            )
+        )
         return 0
     grouped = group_by_symbol(load_candles(args.fixture))
     if args.symbol not in grouped:
