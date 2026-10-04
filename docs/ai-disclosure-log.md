@@ -14,3 +14,4 @@
 
 Reference process: zeekiankok92/aixtech-agent-harness-demo.
 The connected account cannot push to that repository, so this system lives on kkzee92/aixtech-crypto-intel.
+| 2026-10-05 | v0.10 per-class microstructure guards, class data policies, cyber architecture evidence digest | Grok, xAI | pending |

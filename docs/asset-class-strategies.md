@@ -152,5 +152,18 @@ paper size. See [v07-automation-and-security.md](v07-automation-and-security.md)
 `crypto-intel alerts` routes information severity only. `crypto-intel zerotrust`
 describes the research plane. Neither path can place an order.
 
+## Version 0.10 microstructure guards
 
+`crypto-intel v10` is a sixth pass. It can only shrink paper size. See
+[v10-class-and-cyber.md](v10-class-and-cyber.md).
 
+| Class | Guard | Effect |
+|---|---|---|
+| Major | Session-liquidity haircut | Thin volume versus the 8-bar median halves size |
+| Large-cap alt | Wash-print veto | High volume with almost no range zeroes size |
+| Stablecoin | Peg-persistence watch | Three off-peg closes stay an alert. Size stays zero |
+| DeFi | Liquidity-cliff haircut | A 60% volume drop halves size |
+| Meme | Wick-rejection veto | A close in the lower 40% of the bar zeroes size |
+| L2 | Fee-spike proxy | A wide bar halves size; a missing benchmark zeroes it |
+| RWA | NAV-gap halt | An open gap above 3% zeroes size |
+| Perpetual | Basis-blowout veto | Six-bar drift above 6% zeroes size |

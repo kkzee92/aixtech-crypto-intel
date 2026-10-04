@@ -110,3 +110,10 @@ The loader still rejects anything that is not labelled SYNTHETIC.
 - Read-only market key *names* are classified and marked rotate after 90 days. Trade, withdrawal, and unqualified secret names are refused. No key material is generated or stored.
 - Clock skew above 120 seconds is rejected by the feed policy check. Retention for secrets and personal data is zero.
 - These checks do not open a socket and are not a certification.
+
+## Version 0.10
+
+`crypto-intel cyberarch` adds a class data policy and an evidence digest on
+top of the zero-trust research plane. There is still no execution zone. A
+change to the policy text changes the digest. The command cannot enable live
+trading. Details: [v10-class-and-cyber.md](v10-class-and-cyber.md).

@@ -27,6 +27,7 @@ from crypto_intel.supply import architecture_report
 from crypto_intel.threats import threat_report
 from crypto_intel.v08 import apply_v08, data_plane_report, schedule_manifest
 from crypto_intel.v09 import apply_v09, research_cycle, zero_trust_report
+from crypto_intel.v10 import apply_v10, cyber_architecture_report, information_cycle
 from crypto_intel.walkforward import split_walkforward
 
 
@@ -71,6 +72,9 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("zerotrust", help="v0.9 zero-trust research plane; no execution zone")
     alerts = sub.add_parser("alerts", help="v0.9 information alerts; never an order")
     alerts.add_argument("fixture")
+    v10 = sub.add_parser("v10", help="v0.10 class microstructure guard; cannot raise size")
+    v10.add_argument("fixture")
+    sub.add_parser("cyberarch", help="v0.10 cyber and data-security architecture snapshot")
     return parser
 
 
@@ -255,6 +259,27 @@ def main(argv: Sequence[str] | None = None) -> int:
             deviation = abs(last.close - 1.0) if last.asset_class.value == "stablecoin" else 0.0
             rows.append({"asset_class": last.asset_class.value, "deviation": deviation, "stress": False})
         print(json.dumps(research_cycle(rows), indent=2))
+        return 0
+    if args.command == "cyberarch":
+        print(json.dumps(cyber_architecture_report(), indent=2))
+        return 0
+    if args.command == "v10":
+        grouped = group_by_symbol(load_candles(args.fixture))
+        benchmark = grouped.get("ETH-USD")
+        rows = []
+        for symbol, series in grouped.items():
+            row = inform(series, benchmark=None if symbol == "ETH-USD" else benchmark)
+            proposed = float(row["size_fraction"])
+            side = Side(str(row["side"]))
+            guarded = apply_v10(
+                series,
+                proposed_size=proposed,
+                side=side,
+                benchmark=None if symbol == "ETH-USD" else benchmark,
+            )
+            guarded["prior_size"] = proposed
+            rows.append(guarded)
+        print(json.dumps({"cycle": information_cycle(rows), "rows": rows}, indent=2))
         return 0
     if args.command == "v09":
         grouped = group_by_symbol(load_candles(args.fixture))
