@@ -26,6 +26,7 @@ from crypto_intel.sleeves import apply_sleeve
 from crypto_intel.supply import architecture_report
 from crypto_intel.threats import threat_report
 from crypto_intel.v08 import apply_v08, data_plane_report, schedule_manifest
+from crypto_intel.v09 import apply_v09, research_cycle, zero_trust_report
 from crypto_intel.walkforward import split_walkforward
 
 
@@ -65,6 +66,11 @@ def build_parser() -> argparse.ArgumentParser:
     overlay.add_argument("fixture")
     sub.add_parser("dataplane", help="v0.8 data-plane architecture; no execution zone")
     sub.add_parser("schedule", help="v0.8 offline information cadence")
+    guard = sub.add_parser("v09", help="v0.9 per-class guard; size can only shrink")
+    guard.add_argument("fixture")
+    sub.add_parser("zerotrust", help="v0.9 zero-trust research plane; no execution zone")
+    alerts = sub.add_parser("alerts", help="v0.9 information alerts; never an order")
+    alerts.add_argument("fixture")
     return parser
 
 
@@ -236,6 +242,36 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             sleeved["prior_size"] = proposed
             rows.append(sleeved)
+        print(json.dumps(rows, indent=2))
+        return 0
+    if args.command == "zerotrust":
+        print(json.dumps(zero_trust_report(), indent=2))
+        return 0
+    if args.command == "alerts":
+        grouped = group_by_symbol(load_candles(args.fixture))
+        rows = []
+        for series in grouped.values():
+            last = series[-1]
+            deviation = abs(last.close - 1.0) if last.asset_class.value == "stablecoin" else 0.0
+            rows.append({"asset_class": last.asset_class.value, "deviation": deviation, "stress": False})
+        print(json.dumps(research_cycle(rows), indent=2))
+        return 0
+    if args.command == "v09":
+        grouped = group_by_symbol(load_candles(args.fixture))
+        benchmark = grouped.get("ETH-USD")
+        rows = []
+        for symbol, series in grouped.items():
+            row = inform(series, benchmark=None if symbol == "ETH-USD" else benchmark)
+            proposed = float(row["size_fraction"])
+            side = Side(str(row["side"]))
+            guarded = apply_v09(
+                series,
+                proposed_size=proposed,
+                side=side,
+                benchmark=None if symbol == "ETH-USD" else benchmark,
+            )
+            guarded["prior_size"] = proposed
+            rows.append(guarded)
         print(json.dumps(rows, indent=2))
         return 0
     grouped = group_by_symbol(load_candles(args.fixture))

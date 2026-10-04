@@ -133,4 +133,24 @@ paper size. See [v07-automation-and-security.md](v07-automation-and-security.md)
 | RWA | Stale-print haircut | Three identical closes halve size |
 | Perpetual | Funding-sign flip | A sign change versus the prior bar zeroes carry or fade size |
 
+## Version 0.9 guards
+
+`crypto-intel v09` is a fifth pass. It can only shrink paper size. See
+[v09-class-and-cyber.md](v09-class-and-cyber.md).
+
+| Class | Guard | Effect |
+|---|---|---|
+| Major | Drawdown-cluster haircut | Five consecutive lower closes halve size |
+| Large-cap alt | Idiosyncratic gap veto | Open gap above 6% zeroes size |
+| Stablecoin | Tertiary peg watch | Deviation of 10 bp or more is a watch. Size stays zero |
+| DeFi | Bar-range stress halt | Last bar range above 5% zeroes size |
+| Meme | Three-bar chase veto | A 25% rise over three rising bars zeroes size |
+| L2 | Benchmark-lag haircut | Lagging the benchmark by more than 4% over six bars halves size |
+| RWA | Stale-print veto | More than 36 hours between the last two prints zeroes size |
+| Perpetual | Extreme-funding veto | Absolute funding above 20 bp zeroes size |
+
+`crypto-intel alerts` routes information severity only. `crypto-intel zerotrust`
+describes the research plane. Neither path can place an order.
+
+
 

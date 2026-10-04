@@ -10,7 +10,7 @@ published from the connected account `kkzee92` because that connector cannot
 push to `zeekiankok92`.
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![version](https://img.shields.io/badge/version-0.8.0-blue)
+![version](https://img.shields.io/badge/version-0.9.0-blue)
 ![mode](https://img.shields.io/badge/execution-paper%20only-orange)
 ![Licence](https://img.shields.io/badge/licence-MIT-green)
 
@@ -29,6 +29,7 @@ push to `zeekiankok92`.
 - v0.6 adds a per-class enhancement that can only shrink paper size, a key-scope allowlist, a key-ceremony checklist, and an incident playbook that cannot resume live trading.
 - v0.7 adds an offline information pipeline with class freshness SLAs, a third-pass sleeve per asset class, and a supply-chain / data-flow snapshot. Sleeves cannot raise size. Break-glass cannot enable live trading.
 - v0.8 adds a fourth-pass overlay per asset class, a declared offline information cadence, and a data plane with no execution zone. Overlays cannot raise size.
+- v0.9 adds a fifth-pass guard per asset class, an information alert router, and a zero-trust research plane. Guards cannot raise size. Alerts are not orders. Dual acknowledgement of a parameter digest cannot enable live trading.
 - Backtests on **synthetic** candles only. Network access is injectable and unused by default.
 
 | Asset class | Research rule | Risk cap | Cost |
@@ -47,6 +48,7 @@ Security design: [docs/security-architecture.md](docs/security-architecture.md).
 v0.6 overlay: [docs/v06-class-and-cyber.md](docs/v06-class-and-cyber.md).
 v0.7 pipeline and sleeves: [docs/v07-automation-and-security.md](docs/v07-automation-and-security.md).
 v0.8 overlays and data plane: [docs/v08-strategies-and-dataplane.md](docs/v08-strategies-and-dataplane.md).
+v0.9 guards and zero-trust plane: [docs/v09-class-and-cyber.md](docs/v09-class-and-cyber.md).
 
 ## Run
 
@@ -71,6 +73,9 @@ PYTHONPATH=src python -m crypto_intel supply
 PYTHONPATH=src python -m crypto_intel v08 fixtures/candles_synthetic.json
 PYTHONPATH=src python -m crypto_intel dataplane
 PYTHONPATH=src python -m crypto_intel schedule
+PYTHONPATH=src python -m crypto_intel v09 fixtures/candles_synthetic.json
+PYTHONPATH=src python -m crypto_intel zerotrust
+PYTHONPATH=src python -m crypto_intel alerts fixtures/candles_synthetic.json
 PYTHONPATH=src python -m crypto_intel demo fixtures/candles_synthetic.json
 ```
 
@@ -91,6 +96,7 @@ The fixture is labelled `SYNTHETIC` and is not a market history.
 11. v0.6 class enhancement cannot raise size. Key scopes are market-read only. Incident recovery cannot enable live trading.
 12. v0.7 pipeline is offline. Class sleeves cannot raise size. No role and no break-glass path can place an order or enable live trading.
 13. v0.8 overlays cannot raise size. The data plane has no execution zone and refuses seeds, trade credentials, and personal data.
+14. v0.9 guards cannot raise size. Alerts carry no order instruction. Zero-trust zones have no execution zone. Two acknowledgements of a parameter digest still cannot enable live trading.
 
 ## Honesty
 

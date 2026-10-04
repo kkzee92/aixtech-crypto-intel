@@ -70,7 +70,11 @@ def test_overlays_cover_each_class_and_cannot_raise_size():
 
     rwa = apply_v08(_series("ONDO-USD", AssetClass.RWA, [50] * 8), proposed_size=0.02, side=Side.LONG)
     assert rwa["size_fraction"] == 0.0
-    rwa_up = apply_v08(_series("ONDO-USD", AssetClass.RWA, [50 + i for i in range(8)]), proposed_size=0.02, side=Side.LONG)
+    rwa_up = apply_v08(
+        _series("ONDO-USD", AssetClass.RWA, [50 + i for i in range(8)]),
+        proposed_size=0.02,
+        side=Side.LONG,
+    )
     assert rwa_up["size_fraction"] == 0.02
 
     perp = apply_v08(
