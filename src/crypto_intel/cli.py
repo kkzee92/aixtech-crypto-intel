@@ -25,6 +25,7 @@ from crypto_intel.security import AuditLog
 from crypto_intel.sleeves import apply_sleeve
 from crypto_intel.supply import architecture_report
 from crypto_intel.threats import threat_report
+from crypto_intel.v08 import apply_v08, data_plane_report, schedule_manifest
 from crypto_intel.walkforward import split_walkforward
 
 
@@ -60,6 +61,10 @@ def build_parser() -> argparse.ArgumentParser:
     sleeve = sub.add_parser("sleeve", help="v0.7 per-class sleeve; size can only shrink")
     sleeve.add_argument("fixture")
     sub.add_parser("supply", help="v0.7 data-flow, role, and supply-chain snapshot")
+    overlay = sub.add_parser("v08", help="v0.8 per-class overlay; size can only shrink")
+    overlay.add_argument("fixture")
+    sub.add_parser("dataplane", help="v0.8 data-plane architecture; no execution zone")
+    sub.add_parser("schedule", help="v0.8 offline information cadence")
     return parser
 
 
@@ -195,6 +200,25 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     if args.command == "supply":
         print(json.dumps(architecture_report(), indent=2))
+        return 0
+    if args.command == "schedule":
+        print(json.dumps(schedule_manifest(), indent=2))
+        return 0
+    if args.command == "dataplane":
+        print(json.dumps(data_plane_report(), indent=2))
+        return 0
+    if args.command == "v08":
+        grouped = group_by_symbol(load_candles(args.fixture))
+        benchmark = grouped.get("ETH-USD")
+        rows = []
+        for symbol, series in grouped.items():
+            row = inform(series, benchmark=None if symbol == "ETH-USD" else benchmark)
+            proposed = float(row["size_fraction"])
+            side = Side(str(row["side"]))
+            overlaid = apply_v08(series, proposed_size=proposed, side=side)
+            overlaid["prior_size"] = proposed
+            rows.append(overlaid)
+        print(json.dumps(rows, indent=2))
         return 0
     if args.command == "sleeve":
         grouped = group_by_symbol(load_candles(args.fixture))
