@@ -10,7 +10,7 @@ published from the connected account `kkzee92` because that connector cannot
 push to `zeekiankok92`.
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![version](https://img.shields.io/badge/version-0.7.0-blue)
+![version](https://img.shields.io/badge/version-0.8.0-blue)
 ![mode](https://img.shields.io/badge/execution-paper%20only-orange)
 ![Licence](https://img.shields.io/badge/licence-MIT-green)
 
@@ -28,6 +28,7 @@ push to `zeekiankok92`.
 - v0.5 adds a cross-asset spillover and stablecoin-contagion overlay, an ETH/BTC relative sleeve inside majors, a chronological walk-forward split, data classification, and an executable STRIDE map.
 - v0.6 adds a per-class enhancement that can only shrink paper size, a key-scope allowlist, a key-ceremony checklist, and an incident playbook that cannot resume live trading.
 - v0.7 adds an offline information pipeline with class freshness SLAs, a third-pass sleeve per asset class, and a supply-chain / data-flow snapshot. Sleeves cannot raise size. Break-glass cannot enable live trading.
+- v0.8 adds an information desk with a correlation-shock scale, data-security zones that refuse keys and personal identifiers, and a fourth-pass overlay per asset class. Overlays cannot raise size. A seal does not authorize live trading.
 - Backtests on **synthetic** candles only. Network access is injectable and unused by default.
 
 | Asset class | Research rule | Risk cap | Cost |
@@ -45,6 +46,7 @@ Full notes: [docs/asset-class-strategies.md](docs/asset-class-strategies.md).
 Security design: [docs/security-architecture.md](docs/security-architecture.md).
 v0.6 overlay: [docs/v06-class-and-cyber.md](docs/v06-class-and-cyber.md).
 v0.7 pipeline and sleeves: [docs/v07-automation-and-security.md](docs/v07-automation-and-security.md).
+v0.8 desk, zones, and overlays: [docs/v08-information-and-security.md](docs/v08-information-and-security.md).
 
 ## Run
 
@@ -66,6 +68,9 @@ PYTHONPATH=src python -m crypto_intel cyber
 PYTHONPATH=src python -m crypto_intel pipeline
 PYTHONPATH=src python -m crypto_intel sleeve fixtures/candles_synthetic.json
 PYTHONPATH=src python -m crypto_intel supply
+PYTHONPATH=src python -m crypto_intel zones
+PYTHONPATH=src python -m crypto_intel desk fixtures/candles_synthetic.json
+PYTHONPATH=src python -m crypto_intel overlay fixtures/candles_synthetic.json
 PYTHONPATH=src python -m crypto_intel demo fixtures/candles_synthetic.json
 ```
 
@@ -85,6 +90,7 @@ The fixture is labelled `SYNTHETIC` and is not a market history.
 10. v0.5 cross-asset veto, major relative sleeve, data-class refusal, and STRIDE coverage check.
 11. v0.6 class enhancement cannot raise size. Key scopes are market-read only. Incident recovery cannot enable live trading.
 12. v0.7 pipeline is offline. Class sleeves cannot raise size. No role and no break-glass path can place an order or enable live trading.
+13. v0.8 information desk is offline. Class overlays cannot raise size. Forbidden-zone fields are refused. A research seal does not authorize live trading.
 
 ## Honesty
 

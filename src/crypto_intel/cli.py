@@ -13,11 +13,13 @@ from crypto_intel.catalog import parameter_digest
 from crypto_intel.controls import control_report
 from crypto_intel.cross_asset import apply_cross_overlay, basket_report
 from crypto_intel.cyber import incident_playbook, key_ceremony, research_packet
+from crypto_intel.desk import build_dossier, desk_manifest
 from crypto_intel.engine import backtest, run_once
 from crypto_intel.enhance import apply_class_enhancement
 from crypto_intel.intel import inform
 from crypto_intel.market import group_by_symbol, load_candles
 from crypto_intel.models import ExecutionMode, Side
+from crypto_intel.overlays import apply_overlay
 from crypto_intel.posture import Role, allow, attest_source, feed_status, mode_status
 from crypto_intel.relative import major_relative
 from crypto_intel.scorecard import score_book
@@ -26,6 +28,7 @@ from crypto_intel.sleeves import apply_sleeve
 from crypto_intel.supply import architecture_report
 from crypto_intel.threats import threat_report
 from crypto_intel.walkforward import split_walkforward
+from crypto_intel.zones import refuse_forbidden, zone_catalog
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -60,6 +63,11 @@ def build_parser() -> argparse.ArgumentParser:
     sleeve = sub.add_parser("sleeve", help="v0.7 per-class sleeve; size can only shrink")
     sleeve.add_argument("fixture")
     sub.add_parser("supply", help="v0.7 data-flow, role, and supply-chain snapshot")
+    sub.add_parser("zones", help="v0.8 data-security zones; forbidden fields are refused")
+    desk = sub.add_parser("desk", help="v0.8 offline information dossier")
+    desk.add_argument("fixture")
+    overlay = sub.add_parser("overlay", help="v0.8 per-class overlay; size can only shrink")
+    overlay.add_argument("fixture")
     return parser
 
 
@@ -212,6 +220,35 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             sleeved["prior_size"] = proposed
             rows.append(sleeved)
+        print(json.dumps(rows, indent=2))
+        return 0
+    if args.command == "zones":
+        print(json.dumps(zone_catalog(), indent=2))
+        return 0
+    if args.command == "desk":
+        path_text = Path(args.fixture).read_text(encoding="utf-8")
+        refuse_forbidden(path_text)
+        grouped = group_by_symbol(load_candles(args.fixture))
+        payload = json.loads(path_text)
+        print(json.dumps(build_dossier(grouped, label=str(payload.get("label")), ages={}, zone_ok=True), indent=2))
+        print(json.dumps(desk_manifest(), indent=2))
+        return 0
+    if args.command == "overlay":
+        grouped = group_by_symbol(load_candles(args.fixture))
+        benchmark = grouped.get("ETH-USD")
+        rows = []
+        for symbol, series in grouped.items():
+            row = inform(series, benchmark=None if symbol == "ETH-USD" else benchmark)
+            proposed = float(row["size_fraction"])
+            side = Side(str(row["side"]))
+            overlaid = apply_overlay(
+                series,
+                proposed_size=proposed,
+                side=side,
+                benchmark=None if symbol == "ETH-USD" else benchmark,
+            )
+            overlaid["prior_size"] = proposed
+            rows.append(overlaid)
         print(json.dumps(rows, indent=2))
         return 0
     grouped = group_by_symbol(load_candles(args.fixture))
