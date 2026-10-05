@@ -4,7 +4,9 @@ from crypto_intel.models import AssetClass, Candle, Side
 from crypto_intel.v10 import apply_v10, cyber_plane_report, information_pack
 
 
-def _bars(asset_class: AssetClass, *, volume: float = 100.0, funding: float = 0.0, close: float = 100.0) -> list[Candle]:
+def _bars(
+    asset_class: AssetClass, *, volume: float = 100.0, funding: float = 0.0, close: float = 100.0
+) -> list[Candle]:
     rows = []
     for index in range(12):
         price = close + index * 0.1

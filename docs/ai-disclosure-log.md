@@ -15,3 +15,4 @@
 
 Reference process: zeekiankok92/aixtech-agent-harness-demo.
 The connected account cannot push to that repository, so this system lives on kkzee92/aixtech-crypto-intel.
+| 2026-10-05 | v0.11 per-class session guards, information bulletin, NIST CSF-style control map | Grok, xAI | pending |

@@ -28,6 +28,7 @@ from crypto_intel.threats import threat_report
 from crypto_intel.v08 import apply_v08, data_plane_report, schedule_manifest
 from crypto_intel.v09 import apply_v09, research_cycle, zero_trust_report
 from crypto_intel.v10 import apply_v10, cyber_plane_report, information_pack
+from crypto_intel.v11 import apply_v11, csf_report, information_bulletin
 from crypto_intel.walkforward import split_walkforward
 
 
@@ -77,6 +78,11 @@ def build_parser() -> argparse.ArgumentParser:
     pack = sub.add_parser("pack", help="v0.10 information pack; breadth haircut cannot raise size")
     pack.add_argument("fixture")
     sub.add_parser("cyberplane", help="v0.10 cyber and data-security plane; no execution zone")
+    session = sub.add_parser("v11", help="v0.11 per-class session guard; size can only shrink")
+    session.add_argument("fixture")
+    bulletin = sub.add_parser("bulletin", help="v0.11 information bulletin; never an order")
+    bulletin.add_argument("fixture")
+    sub.add_parser("csf", help="v0.11 NIST CSF-style control map; no execution zone")
     return parser
 
 
@@ -292,6 +298,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     if args.command == "cyberplane":
         print(json.dumps(cyber_plane_report(), indent=2))
+        return 0
+    if args.command == "v11":
+        print(json.dumps(_guarded_rows(args.fixture, apply_v11), indent=2))
+        return 0
+    if args.command == "bulletin":
+        print(json.dumps(information_bulletin(_guarded_rows(args.fixture, apply_v11)), indent=2))
+        return 0
+    if args.command == "csf":
+        print(json.dumps(csf_report(), indent=2))
         return 0
     grouped = group_by_symbol(load_candles(args.fixture))
     if args.symbol not in grouped:
