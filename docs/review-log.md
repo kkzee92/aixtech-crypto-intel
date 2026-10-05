@@ -10,3 +10,4 @@
 | 2026-10-04 | v0.8 class overlays, schedule, data plane | pending human | automated tests to be recorded; human sign-off still required |
 | 2026-10-05 | v0.9 class guards, alerts, zero-trust plane | pending human | automated tests to be recorded; human sign-off still required |
 | 2026-10-05 | v0.11 session guards, bulletin, CSF plane | pending human | automated tests to be recorded; human sign-off still required |
+| 2026-10-06 | v0.12 microstructure guards, strategy cards, lineage plane | pending human | automated tests to be recorded; human sign-off still required |

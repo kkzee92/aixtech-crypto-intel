@@ -29,6 +29,7 @@ from crypto_intel.v08 import apply_v08, data_plane_report, schedule_manifest
 from crypto_intel.v09 import apply_v09, research_cycle, zero_trust_report
 from crypto_intel.v10 import apply_v10, cyber_plane_report, information_pack
 from crypto_intel.v11 import apply_v11, csf_report, information_bulletin
+from crypto_intel.v12 import apply_v12, lineage_report, strategy_cards
 from crypto_intel.walkforward import split_walkforward
 
 
@@ -83,6 +84,12 @@ def build_parser() -> argparse.ArgumentParser:
     bulletin = sub.add_parser("bulletin", help="v0.11 information bulletin; never an order")
     bulletin.add_argument("fixture")
     sub.add_parser("csf", help="v0.11 NIST CSF-style control map; no execution zone")
+    micro = sub.add_parser("v12", help="v0.12 per-class microstructure guard; size can only shrink")
+    micro.add_argument("fixture")
+    cards = sub.add_parser("cards", help="v0.12 strategy cards; never an order")
+    cards.add_argument("fixture")
+    lineage = sub.add_parser("lineage", help="v0.12 data-lineage zone map; no execution zone")
+    lineage.add_argument("fixture")
     return parser
 
 
@@ -138,6 +145,25 @@ def _guarded_rows(fixture: str, apply) -> list[dict[str, object]]:
         proposed = float(row["size_fraction"])
         side = Side(str(row["side"]))
         guarded = apply(series, proposed_size=proposed, side=side)
+        guarded["prior_size"] = proposed
+        rows.append(guarded)
+    return rows
+
+
+def _v12_rows(fixture: str) -> list[dict[str, object]]:
+    grouped = group_by_symbol(load_candles(fixture))
+    benchmark = grouped.get("ETH-USD")
+    rows = []
+    for symbol, series in grouped.items():
+        row = inform(series, benchmark=None if symbol == "ETH-USD" else benchmark)
+        proposed = float(row["size_fraction"])
+        side = Side(str(row["side"]))
+        guarded = apply_v12(
+            series,
+            proposed_size=proposed,
+            side=side,
+            benchmark=None if symbol == "ETH-USD" else benchmark,
+        )
         guarded["prior_size"] = proposed
         rows.append(guarded)
     return rows
@@ -307,6 +333,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     if args.command == "csf":
         print(json.dumps(csf_report(), indent=2))
+        return 0
+    if args.command == "v12":
+        print(json.dumps(_v12_rows(args.fixture), indent=2))
+        return 0
+    if args.command == "cards":
+        print(json.dumps(strategy_cards(_v12_rows(args.fixture)), indent=2))
+        return 0
+    if args.command == "lineage":
+        text = Path(args.fixture).read_text(encoding="utf-8")
+        label = str(json.loads(text).get("label", "UNLABELLED"))
+        print(json.dumps(lineage_report(label, text), indent=2))
         return 0
     grouped = group_by_symbol(load_candles(args.fixture))
     if args.symbol not in grouped:
