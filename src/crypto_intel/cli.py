@@ -27,6 +27,7 @@ from crypto_intel.supply import architecture_report
 from crypto_intel.threats import threat_report
 from crypto_intel.v08 import apply_v08, data_plane_report, schedule_manifest
 from crypto_intel.v09 import apply_v09, research_cycle, zero_trust_report
+from crypto_intel.v10 import apply_v10, cyber_plane_report, information_pack
 from crypto_intel.walkforward import split_walkforward
 
 
@@ -71,6 +72,11 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("zerotrust", help="v0.9 zero-trust research plane; no execution zone")
     alerts = sub.add_parser("alerts", help="v0.9 information alerts; never an order")
     alerts.add_argument("fixture")
+    liquidity = sub.add_parser("v10", help="v0.10 per-class liquidity guard; size can only shrink")
+    liquidity.add_argument("fixture")
+    pack = sub.add_parser("pack", help="v0.10 information pack; breadth haircut cannot raise size")
+    pack.add_argument("fixture")
+    sub.add_parser("cyberplane", help="v0.10 cyber and data-security plane; no execution zone")
     return parser
 
 
@@ -115,6 +121,20 @@ def posture(fixture: str) -> dict[str, object]:
         "operator_can_trade": allow(Role.OPERATOR, "place_order"),
         "live_enabled": False,
     }
+
+
+def _guarded_rows(fixture: str, apply) -> list[dict[str, object]]:
+    grouped = group_by_symbol(load_candles(fixture))
+    benchmark = grouped.get("ETH-USD")
+    rows = []
+    for symbol, series in grouped.items():
+        row = inform(series, benchmark=None if symbol == "ETH-USD" else benchmark)
+        proposed = float(row["size_fraction"])
+        side = Side(str(row["side"]))
+        guarded = apply(series, proposed_size=proposed, side=side)
+        guarded["prior_size"] = proposed
+        rows.append(guarded)
+    return rows
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -214,17 +234,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(json.dumps(data_plane_report(), indent=2))
         return 0
     if args.command == "v08":
-        grouped = group_by_symbol(load_candles(args.fixture))
-        benchmark = grouped.get("ETH-USD")
-        rows = []
-        for symbol, series in grouped.items():
-            row = inform(series, benchmark=None if symbol == "ETH-USD" else benchmark)
-            proposed = float(row["size_fraction"])
-            side = Side(str(row["side"]))
-            overlaid = apply_v08(series, proposed_size=proposed, side=side)
-            overlaid["prior_size"] = proposed
-            rows.append(overlaid)
-        print(json.dumps(rows, indent=2))
+        print(json.dumps(_guarded_rows(args.fixture, apply_v08), indent=2))
         return 0
     if args.command == "sleeve":
         grouped = group_by_symbol(load_candles(args.fixture))
@@ -273,6 +283,15 @@ def main(argv: Sequence[str] | None = None) -> int:
             guarded["prior_size"] = proposed
             rows.append(guarded)
         print(json.dumps(rows, indent=2))
+        return 0
+    if args.command == "v10":
+        print(json.dumps(_guarded_rows(args.fixture, apply_v10), indent=2))
+        return 0
+    if args.command == "pack":
+        print(json.dumps(information_pack(_guarded_rows(args.fixture, apply_v10)), indent=2))
+        return 0
+    if args.command == "cyberplane":
+        print(json.dumps(cyber_plane_report(), indent=2))
         return 0
     grouped = group_by_symbol(load_candles(args.fixture))
     if args.symbol not in grouped:
