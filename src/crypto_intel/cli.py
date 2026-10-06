@@ -29,6 +29,7 @@ from crypto_intel.v08 import apply_v08, data_plane_report, schedule_manifest
 from crypto_intel.v09 import apply_v09, research_cycle, zero_trust_report
 from crypto_intel.v10 import apply_v10, cyber_plane_report, information_pack
 from crypto_intel.v11 import apply_v11, csf_report, information_bulletin
+from crypto_intel.v12 import apply_v12, custody_plane, information_desk
 from crypto_intel.walkforward import split_walkforward
 
 
@@ -83,6 +84,11 @@ def build_parser() -> argparse.ArgumentParser:
     bulletin = sub.add_parser("bulletin", help="v0.11 information bulletin; never an order")
     bulletin.add_argument("fixture")
     sub.add_parser("csf", help="v0.11 NIST CSF-style control map; no execution zone")
+    basis = sub.add_parser("v12", help="v0.12 per-class basis guard; size can only shrink")
+    basis.add_argument("fixture")
+    desk = sub.add_parser("desk", help="v0.12 information desk; never an order")
+    desk.add_argument("fixture")
+    sub.add_parser("custody", help="v0.12 custody and data-security plane; no execution zone")
     return parser
 
 
@@ -307,6 +313,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     if args.command == "csf":
         print(json.dumps(csf_report(), indent=2))
+        return 0
+    if args.command == "v12":
+        print(json.dumps(_guarded_rows(args.fixture, apply_v12), indent=2))
+        return 0
+    if args.command == "desk":
+        payload = json.loads(Path(args.fixture).read_text(encoding="utf-8"))
+        label = str(payload.get("label", ""))
+        print(json.dumps(information_desk(_guarded_rows(args.fixture, apply_v12), fixture_label=label), indent=2))
+        return 0
+    if args.command == "custody":
+        print(json.dumps(custody_plane(), indent=2))
         return 0
     grouped = group_by_symbol(load_candles(args.fixture))
     if args.symbol not in grouped:
