@@ -152,5 +152,21 @@ paper size. See [v07-automation-and-security.md](v07-automation-and-security.md)
 `crypto-intel alerts` routes information severity only. `crypto-intel zerotrust`
 describes the research plane. Neither path can place an order.
 
+## Version 0.13 event guards
 
+`crypto-intel v13` is a ninth pass. It can only shrink paper size. See
+[v13-event-and-datasec.md](v13-event-and-datasec.md).
 
+| Class | Guard | Effect |
+|---|---|---|
+| Major | Failed-auction haircut | Close in the bottom quarter of a wide bar halves size |
+| Large-cap alt | Failed-follow-through haircut | An up bar followed by a down close halves size |
+| Stablecoin | Depeg-velocity watch | Widening deviation of at least 15 bp is a watch. Size stays zero |
+| DeFi | Range-expansion haircut | Last range at least twice the prior median halves size |
+| Meme | Exhaustion-wick veto | Dominant upper wick and a down close zeroes size |
+| L2 | Participation-fade haircut | A three percent move with thin last volume halves size |
+| RWA | Halted-print veto | Four nearly flat bars zeroes size |
+| Perpetual | Funding-acceleration haircut | Rising absolute funding across three bars halves size |
+
+`crypto-intel radar` routes information only. `crypto-intel datasec` describes
+the research data plane. Neither path can place an order.
