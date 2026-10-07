@@ -22,3 +22,4 @@ The connected account cannot push to that repository, so this system lives on kk
 | 2026-10-07 | v0.15 per-class concentration guards, information ledger, segregation plane | Grok, xAI | pending |
 | 2026-10-07 | v0.16 per-class correlation-break guards, information radar, DLP egress plane | Grok, xAI | pending |
 | 2026-10-07 | v0.17 per-class event-window guards, information beacon, identity-bound research plane | Grok, xAI | pending |
+| 2026-10-07 | v0.18 per-class participation guards, information console, data-security plane | Grok, xAI | pending |
