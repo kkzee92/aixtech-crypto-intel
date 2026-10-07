@@ -33,6 +33,7 @@ from crypto_intel.v12 import apply_v12, custody_plane, information_desk
 from crypto_intel.v13 import apply_v13, information_mesh, resilience_plane
 from crypto_intel.v14 import apply_v14, evidence_plane, information_watchtower
 from crypto_intel.v15 import apply_v15, information_ledger, segregation_plane
+from crypto_intel.v16 import apply_v16, dlp_plane, information_radar
 from crypto_intel.walkforward import split_walkforward
 
 
@@ -107,6 +108,11 @@ def build_parser() -> argparse.ArgumentParser:
     ledger = sub.add_parser("ledger", help="v0.15 offline information ledger; never an order")
     ledger.add_argument("fixture")
     sub.add_parser("segregation", help="v0.15 segregation plane; no execution zone")
+    correlation = sub.add_parser("v16", help="v0.16 per-class correlation guard; size can only shrink")
+    correlation.add_argument("fixture")
+    radar = sub.add_parser("radar", help="v0.16 offline information radar; never an order")
+    radar.add_argument("fixture")
+    sub.add_parser("dlp", help="v0.16 DLP egress plane; no execution zone")
     return parser
 
 
@@ -383,6 +389,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     if args.command == "segregation":
         print(json.dumps(segregation_plane(), indent=2))
+        return 0
+    if args.command == "v16":
+        print(json.dumps(_guarded_rows(args.fixture, apply_v16), indent=2))
+        return 0
+    if args.command == "radar":
+        print(json.dumps(information_radar(_guarded_rows(args.fixture, apply_v16)), indent=2))
+        return 0
+    if args.command == "dlp":
+        print(json.dumps(dlp_plane(), indent=2))
         return 0
     grouped = group_by_symbol(load_candles(args.fixture))
     if args.symbol not in grouped:

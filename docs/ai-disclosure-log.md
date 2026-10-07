@@ -20,3 +20,4 @@ The connected account cannot push to that repository, so this system lives on kk
 | 2026-10-07 | v0.13 per-class venue-fragmentation guards, information mesh, cyber-resilience plane | Grok, xAI | pending |
 | 2026-10-07 | v0.14 per-class decay guards, information watchtower, evidence plane | Grok, xAI | pending |
 | 2026-10-07 | v0.15 per-class concentration guards, information ledger, segregation plane | Grok, xAI | pending |
+| 2026-10-07 | v0.16 per-class correlation-break guards, information radar, DLP egress plane | Grok, xAI | pending |

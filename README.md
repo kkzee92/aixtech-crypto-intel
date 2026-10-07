@@ -10,7 +10,7 @@ published from the connected account `kkzee92` because that connector cannot
 push to `zeekiankok92`.
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![version](https://img.shields.io/badge/version-0.15.0-blue)
+![version](https://img.shields.io/badge/version-0.16.0-blue)
 ![mode](https://img.shields.io/badge/execution-paper%20only-orange)
 ![Licence](https://img.shields.io/badge/licence-MIT-green)
 
@@ -36,6 +36,7 @@ push to `zeekiankok92`.
 - v0.13 adds a ninth-pass venue-fragmentation guard per asset class, an offline information mesh, and a cyber-resilience plane. Guards and the mesh cannot raise size. Trade and withdrawal key scopes are refused. There is still no execution zone.
 - v0.14 adds a tenth-pass decay guard per asset class, an offline information watchtower, and an evidence plane. Guards and the watchtower cannot raise size. The automation runner cannot read evidence or enable live trading. There is still no execution zone.
 - v0.15 adds an eleventh-pass concentration guard per asset class, an offline information ledger, and a segregation plane. Guards and the ledger cannot raise size. Dual control of a research digest cannot enable live trading. There is still no execution zone.
+- v0.16 adds a twelfth-pass correlation-break guard per asset class, an offline information radar, and a DLP egress plane. Guards and the radar cannot raise size. Secret, wallet, and personal-data strings are blocked before egress. There is still no execution zone.
 - Backtests on **synthetic** candles only. Network access is injectable and unused by default.
 
 | Asset class | Research rule | Risk cap | Cost |
@@ -61,6 +62,7 @@ v0.12 basis guards and custody plane: [docs/v12-basis-and-custody.md](docs/v12-b
 v0.13 fragmentation guards and resilience plane: [docs/v13-fragmentation-and-resilience.md](docs/v13-fragmentation-and-resilience.md).
 v0.14 decay guards and evidence plane: [docs/v14-decay-and-evidence.md](docs/v14-decay-and-evidence.md).
 v0.15 concentration guards and segregation plane: [docs/v15-concentration-and-segregation.md](docs/v15-concentration-and-segregation.md).
+v0.16 correlation guards and DLP plane: [docs/v16-correlation-and-dlp.md](docs/v16-correlation-and-dlp.md).
 
 ## Run
 
@@ -106,6 +108,9 @@ PYTHONPATH=src python -m crypto_intel evidence
 PYTHONPATH=src python -m crypto_intel v15 fixtures/candles_synthetic.json
 PYTHONPATH=src python -m crypto_intel ledger fixtures/candles_synthetic.json
 PYTHONPATH=src python -m crypto_intel segregation
+PYTHONPATH=src python -m crypto_intel v16 fixtures/candles_synthetic.json
+PYTHONPATH=src python -m crypto_intel radar fixtures/candles_synthetic.json
+PYTHONPATH=src python -m crypto_intel dlp
 PYTHONPATH=src python -m crypto_intel demo fixtures/candles_synthetic.json
 ```
 
@@ -133,6 +138,7 @@ The fixture is labelled `SYNTHETIC` and is not a market history.
 18. v0.13 fragmentation guards and the information mesh cannot raise size. The resilience plane has no execution zone. Trade and withdrawal scopes are refused. Backup restore cannot enable live trading. An operator cannot read the mesh.
 19. v0.14 decay guards and the information watchtower cannot raise size. The evidence plane has no execution zone. Detection actions cannot enable live trading. The automation runner cannot read evidence. Evidence restore cannot enable live trading.
 20. v0.15 concentration guards and the information ledger cannot raise size. The segregation plane has no execution zone. A researcher cannot append the audit log. An automation runner cannot read research records. Dual control cannot enable live trading.
+21. v0.16 correlation guards and the information radar cannot raise size. The DLP plane has no execution zone. Secret, wallet, email, and phone-like strings are blocked before egress. An automation runner cannot emit a digest or enable live trading.
 
 ## Honesty
 
