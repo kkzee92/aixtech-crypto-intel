@@ -6,10 +6,10 @@ import json
 import sys
 
 from crypto_intel.cli import main as cli_main
+from crypto_intel.intel import inform
 from crypto_intel.market import group_by_symbol, load_candles
 from crypto_intel.models import Side
 from crypto_intel.v18 import apply_v18, data_security_architecture, information_console
-from crypto_intel.intel import inform
 
 
 def _guarded_rows(fixture: str) -> list[dict[str, object]]:
