@@ -12,9 +12,6 @@
 | 2026-10-04 | v0.8 per-class size-shrink overlays, offline information cadence, data-plane architecture | Grok, xAI | pending |
 | 2026-10-05 | v0.9 per-class size-shrink guards, information alert router, zero-trust research plane | Grok, xAI | pending |
 | 2026-10-05 | v0.10 per-class liquidity guards, information pack, cyber and data-security plane | Grok, xAI | pending |
-
-Reference process: zeekiankok92/aixtech-agent-harness-demo.
-The connected account cannot push to that repository, so this system lives on kkzee92/aixtech-crypto-intel.
 | 2026-10-05 | v0.11 per-class session guards, information bulletin, NIST CSF-style control map | Grok, xAI | pending |
 | 2026-10-06 | v0.12 per-class basis and inventory guards, information desk, custody data-security plane | Grok, xAI | pending |
 | 2026-10-07 | v0.13 per-class venue-fragmentation guards, information mesh, cyber-resilience plane | Grok, xAI | pending |
@@ -23,3 +20,8 @@ The connected account cannot push to that repository, so this system lives on kk
 | 2026-10-07 | v0.16 per-class correlation-break guards, information radar, DLP egress plane | Grok, xAI | pending |
 | 2026-10-07 | v0.17 per-class event-window guards, information beacon, identity-bound research plane | Grok, xAI | pending |
 | 2026-10-07 | v0.18 per-class participation guards, information console, data-security plane | Grok, xAI | pending |
+| 2026-10-07 | v0.19 per-class microstructure guards, information tape, secrets-lifecycle plane | Grok, xAI | pending |
+
+Reference process: zeekiankok92/aixtech-agent-harness-demo.
+The connected account cannot push to that repository, so this system lives on kkzee92/aixtech-crypto-intel.
+The zeekiankok92/aixtech-crypto-intel fork is behind this origin.
