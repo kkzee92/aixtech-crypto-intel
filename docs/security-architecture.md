@@ -110,3 +110,7 @@ The loader still rejects anything that is not labelled SYNTHETIC.
 - Read-only market key *names* are classified and marked rotate after 90 days. Trade, withdrawal, and unqualified secret names are refused. No key material is generated or stored.
 - Clock skew above 120 seconds is rejected by the feed policy check. Retention for secrets and personal data is zero.
 - These checks do not open a socket and are not a certification.
+
+## Version 0.20 disclosure boundary
+
+Briefs may cross only `research_internal`, `audit`, or `public_brief`. A public brief drops paper size and passes through redaction. Trade, withdrawal, seed, private-key, and api-key tokens are blocked. The boundary stores no key material and cannot enable live trading. See [v20-inventory-and-disclosure.md](v20-inventory-and-disclosure.md).

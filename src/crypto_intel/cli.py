@@ -35,6 +35,9 @@ from crypto_intel.v14 import apply_v14, evidence_plane, information_watchtower
 from crypto_intel.v15 import apply_v15, information_ledger, segregation_plane
 from crypto_intel.v16 import apply_v16, dlp_plane, information_radar
 from crypto_intel.v17 import apply_v17, identity_plane, information_beacon
+from crypto_intel.v18 import apply_v18, data_security_architecture, information_console
+from crypto_intel.v19 import apply_v19, information_tape, secrets_lifecycle
+from crypto_intel.v20 import apply_v20, disclosure_boundary, information_dispatch
 from crypto_intel.walkforward import split_walkforward
 
 
@@ -119,6 +122,21 @@ def build_parser() -> argparse.ArgumentParser:
     beacon = sub.add_parser("beacon", help="v0.17 offline information beacon; never an order")
     beacon.add_argument("fixture")
     sub.add_parser("identity", help="v0.17 identity-bound research plane; no execution zone")
+    participation = sub.add_parser("v18", help="v0.18 per-class participation guard; size can only shrink")
+    participation.add_argument("fixture")
+    console = sub.add_parser("console", help="v0.18 offline information console; never an order")
+    console.add_argument("fixture")
+    sub.add_parser("datasec", help="v0.18 data-security plane; no execution zone")
+    micro = sub.add_parser("v19", help="v0.19 per-class microstructure guard; size can only shrink")
+    micro.add_argument("fixture")
+    tape = sub.add_parser("tape", help="v0.19 offline information tape; never an order")
+    tape.add_argument("fixture")
+    sub.add_parser("secrets", help="v0.19 secrets-lifecycle plane; no key material and no execution zone")
+    inventory = sub.add_parser("v20", help="v0.20 per-class inventory guard; size can only shrink")
+    inventory.add_argument("fixture")
+    dispatch = sub.add_parser("dispatch", help="v0.20 offline information dispatch; never an order")
+    dispatch.add_argument("fixture")
+    sub.add_parser("boundary", help="v0.20 disclosure-boundary plane; no execution zone")
     return parser
 
 
@@ -413,6 +431,33 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     if args.command == "identity":
         print(json.dumps(identity_plane(), indent=2))
+        return 0
+    if args.command == "v18":
+        print(json.dumps(_guarded_rows(args.fixture, apply_v18), indent=2))
+        return 0
+    if args.command == "console":
+        print(json.dumps(information_console(_guarded_rows(args.fixture, apply_v18)), indent=2))
+        return 0
+    if args.command == "datasec":
+        print(json.dumps(data_security_architecture(), indent=2))
+        return 0
+    if args.command == "v19":
+        print(json.dumps(_guarded_rows(args.fixture, apply_v19), indent=2))
+        return 0
+    if args.command == "tape":
+        print(json.dumps(information_tape(_guarded_rows(args.fixture, apply_v19)), indent=2))
+        return 0
+    if args.command == "secrets":
+        print(json.dumps(secrets_lifecycle(), indent=2))
+        return 0
+    if args.command == "v20":
+        print(json.dumps(_guarded_rows(args.fixture, apply_v20), indent=2))
+        return 0
+    if args.command == "dispatch":
+        print(json.dumps(information_dispatch(_guarded_rows(args.fixture, apply_v20)), indent=2))
+        return 0
+    if args.command == "boundary":
+        print(json.dumps(disclosure_boundary(), indent=2))
         return 0
     grouped = group_by_symbol(load_candles(args.fixture))
     if args.symbol not in grouped:

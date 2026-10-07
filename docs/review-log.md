@@ -13,3 +13,4 @@
 | 2026-10-07 | v0.13 fragmentation guards, mesh, resilience plane | pending human | automated tests passed locally; human sign-off still required |
 | 2026-10-07 | v0.14 decay guards, watchtower, evidence plane | pending human | automated tests to be recorded; human sign-off still required |
 | 2026-10-07 | v0.16 correlation guards, radar, DLP egress plane | pending human | automated tests to be recorded; human sign-off still required |
+| 2026-10-08 | v0.20 inventory guards, dispatch, disclosure boundary | pending human | automated tests to be recorded; human sign-off still required |

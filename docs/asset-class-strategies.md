@@ -170,3 +170,7 @@ describes the research plane. Neither path can place an order.
 
 `crypto-intel watchtower` publishes an offline digest. `crypto-intel evidence`
 describes the research evidence plane. Neither path can place an order.
+
+## Version 0.20 inventory overlay
+
+Each class has an additional inventory-age guard in `v20.py`. The guard can only shrink paper size. Majors haircut a three-bar volume drought. Large-cap alts haircut a close below the prior three-bar midpoint. Stablecoins stay at zero and watch a two-bar peg deviation. DeFi haircuts a jump inside a narrow bar. Memes veto a burst that fades on falling volume. L2 haircuts a flat, collapsing-volume stall. RWA haircuts a range break versus its own median. Perpetuals veto a funding-sign flip. Notes: [v20-inventory-and-disclosure.md](v20-inventory-and-disclosure.md).

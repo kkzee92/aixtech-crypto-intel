@@ -10,7 +10,7 @@ published from the connected account `kkzee92` because that connector cannot
 push to `zeekiankok92`.
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![version](https://img.shields.io/badge/version-0.17.0-blue)
+![version](https://img.shields.io/badge/version-0.20.0-blue)
 ![mode](https://img.shields.io/badge/execution-paper%20only-orange)
 ![Licence](https://img.shields.io/badge/licence-MIT-green)
 
@@ -38,6 +38,9 @@ push to `zeekiankok92`.
 - v0.15 adds an eleventh-pass concentration guard per asset class, an offline information ledger, and a segregation plane. Guards and the ledger cannot raise size. Dual control of a research digest cannot enable live trading. There is still no execution zone.
 - v0.16 adds a twelfth-pass correlation-break guard per asset class, an offline information radar, and a DLP egress plane. Guards and the radar cannot raise size. Secret, wallet, and personal-data strings are blocked before egress. There is still no execution zone.
 - v0.17 adds a thirteenth-pass event-window guard per asset class, an offline information beacon, and an identity-bound research plane. Guards and the beacon cannot raise size. Sessions cannot be reused across roles. Trade and withdrawal scopes are refused. There is still no execution zone.
+- v0.18 adds a fourteenth-pass participation guard per asset class, an offline information console, and a data-security plane. Guards and the console cannot raise size. There is still no execution zone.
+- v0.19 adds a fifteenth-pass microstructure guard per asset class, an offline information tape, and a secrets-lifecycle plane. Guards and the tape cannot raise size. Trade, withdrawal, seed, and private-key scopes are refused. There is still no execution zone.
+- v0.20 adds a sixteenth-pass inventory-age guard per asset class, an offline information dispatch, and a disclosure-boundary plane. Guards and the dispatch cannot raise size. A public brief drops paper size. There is still no execution zone.
 - Backtests on **synthetic** candles only. Network access is injectable and unused by default.
 
 | Asset class | Research rule | Risk cap | Cost |
@@ -65,6 +68,9 @@ v0.14 decay guards and evidence plane: [docs/v14-decay-and-evidence.md](docs/v14
 v0.15 concentration guards and segregation plane: [docs/v15-concentration-and-segregation.md](docs/v15-concentration-and-segregation.md).
 v0.16 correlation guards and DLP plane: [docs/v16-correlation-and-dlp.md](docs/v16-correlation-and-dlp.md).
 v0.17 event-window guards and identity plane: [docs/v17-event-and-identity.md](docs/v17-event-and-identity.md).
+v0.18 participation guards and data-security plane: [docs/v18-participation-and-datasec.md](docs/v18-participation-and-datasec.md).
+v0.19 microstructure guards and secrets lifecycle: [docs/v19-microstructure-and-secrets.md](docs/v19-microstructure-and-secrets.md).
+v0.20 inventory guards and disclosure boundary: [docs/v20-inventory-and-disclosure.md](docs/v20-inventory-and-disclosure.md).
 
 ## Run
 
@@ -77,6 +83,9 @@ PYTHONPATH=src python -m crypto_intel brief fixtures/candles_synthetic.json
 PYTHONPATH=src python -m crypto_intel posture fixtures/candles_synthetic.json
 PYTHONPATH=src python -m crypto_intel scorecard fixtures/candles_synthetic.json
 PYTHONPATH=src python -m crypto_intel controls
+PYTHONPATH=src python -m crypto_intel v20 fixtures/candles_synthetic.json
+PYTHONPATH=src python -m crypto_intel dispatch fixtures/candles_synthetic.json
+PYTHONPATH=src python -m crypto_intel boundary
 PYTHONPATH=src python -m crypto_intel intel fixtures/candles_synthetic.json
 PYTHONPATH=src python -m crypto_intel cross fixtures/candles_synthetic.json
 PYTHONPATH=src python -m crypto_intel threats

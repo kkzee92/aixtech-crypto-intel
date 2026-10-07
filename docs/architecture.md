@@ -26,3 +26,5 @@ flowchart LR
 `scan` and `backtest` keep the v0.3 paper path. `intel` is the v0.4 information path: quality, confirmation, and volatility targeting. Neither path can place a live order.
 
 Runtime dependencies are the Python standard library. Tests inject fetchers and never open a socket. See [security-architecture.md](security-architecture.md), [data-security-architecture.md](data-security-architecture.md), and [asset-class-strategies.md](asset-class-strategies.md).
+
+Version 0.20 adds `v20.py`: an inventory-age guard per asset class, an offline dispatch digest, and a disclosure boundary with research, audit, and public-brief zones. The CLI also exposes the v0.18 console/data-security plane and the v0.19 tape/secrets plane. None of these paths can place an order.
