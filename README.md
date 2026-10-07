@@ -10,7 +10,7 @@ published from the connected account `kkzee92` because that connector cannot
 push to `zeekiankok92`.
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![version](https://img.shields.io/badge/version-0.12.0-blue)
+![version](https://img.shields.io/badge/version-0.13.0-blue)
 ![mode](https://img.shields.io/badge/execution-paper%20only-orange)
 ![Licence](https://img.shields.io/badge/licence-MIT-green)
 
@@ -33,6 +33,7 @@ push to `zeekiankok92`.
 - v0.10 adds a sixth-pass liquidity and structure guard per asset class, a breadth-aware information pack, and a cyber data-security plane with key separation and zero-retention credential and personal-data classes. Guards and the pack cannot raise size. There is still no execution zone.
 - v0.11 adds a seventh-pass session guard per asset class, an offline information bulletin, and a NIST CSF 2.0-style control map. Guards and the bulletin cannot raise size. No role can trade or enable live trading. There is still no execution zone.
 - v0.12 adds an eighth-pass basis and inventory guard per asset class, an offline information desk with a lineage digest, and a custody data-security plane. Guards and the desk cannot raise size. The withdrawal allowlist is empty. There is still no execution zone.
+- v0.13 adds a ninth-pass venue-fragmentation guard per asset class, an offline information mesh, and a cyber-resilience plane. Guards and the mesh cannot raise size. Trade and withdrawal key scopes are refused. There is still no execution zone.
 - Backtests on **synthetic** candles only. Network access is injectable and unused by default.
 
 | Asset class | Research rule | Risk cap | Cost |
@@ -55,6 +56,7 @@ v0.9 guards and zero-trust plane: [docs/v09-class-and-cyber.md](docs/v09-class-a
 v0.10 liquidity guards and cyber plane: [docs/v10-liquidity-and-cyber.md](docs/v10-liquidity-and-cyber.md).
 v0.11 session guards and CSF map: [docs/v11-session-and-csf.md](docs/v11-session-and-csf.md).
 v0.12 basis guards and custody plane: [docs/v12-basis-and-custody.md](docs/v12-basis-and-custody.md).
+v0.13 fragmentation guards and resilience plane: [docs/v13-fragmentation-and-resilience.md](docs/v13-fragmentation-and-resilience.md).
 
 ## Run
 
@@ -91,6 +93,9 @@ PYTHONPATH=src python -m crypto_intel csf
 PYTHONPATH=src python -m crypto_intel v12 fixtures/candles_synthetic.json
 PYTHONPATH=src python -m crypto_intel desk fixtures/candles_synthetic.json
 PYTHONPATH=src python -m crypto_intel custody
+PYTHONPATH=src python -m crypto_intel v13 fixtures/candles_synthetic.json
+PYTHONPATH=src python -m crypto_intel mesh fixtures/candles_synthetic.json
+PYTHONPATH=src python -m crypto_intel resilience
 PYTHONPATH=src python -m crypto_intel demo fixtures/candles_synthetic.json
 ```
 
@@ -115,6 +120,7 @@ The fixture is labelled `SYNTHETIC` and is not a market history.
 15. v0.10 liquidity guards and the information pack cannot raise size. The cyber plane has no execution zone. Market-read, audit-sign, and break-glass keys cannot trade or enable live trading.
 16. v0.11 session guards and the information bulletin cannot raise size. The CSF map has no execution zone. Researcher, auditor, and operator roles cannot trade or enable live trading.
 17. v0.12 basis guards and the information desk cannot raise size. The custody plane has no execution zone. The withdrawal allowlist is empty. An operator cannot sign a research digest or enable live trading.
+18. v0.13 fragmentation guards and the information mesh cannot raise size. The resilience plane has no execution zone. Trade and withdrawal scopes are refused. Backup restore cannot enable live trading. An operator cannot read the mesh.
 
 ## Honesty
 
