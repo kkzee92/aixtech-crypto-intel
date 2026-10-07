@@ -31,6 +31,7 @@ from crypto_intel.v10 import apply_v10, cyber_plane_report, information_pack
 from crypto_intel.v11 import apply_v11, csf_report, information_bulletin
 from crypto_intel.v12 import apply_v12, custody_plane, information_desk
 from crypto_intel.v13 import apply_v13, information_mesh, resilience_plane
+from crypto_intel.v14 import apply_v14, evidence_plane, information_watchtower
 from crypto_intel.walkforward import split_walkforward
 
 
@@ -95,6 +96,11 @@ def build_parser() -> argparse.ArgumentParser:
     mesh = sub.add_parser("mesh", help="v0.13 information mesh; disagreement can only shrink size")
     mesh.add_argument("fixture")
     sub.add_parser("resilience", help="v0.13 cyber-resilience plane; no execution zone")
+    decay = sub.add_parser("v14", help="v0.14 per-class decay guard; size can only shrink")
+    decay.add_argument("fixture")
+    watch = sub.add_parser("watchtower", help="v0.14 offline information watchtower; never an order")
+    watch.add_argument("fixture")
+    sub.add_parser("evidence", help="v0.14 evidence plane; no execution zone")
     return parser
 
 
@@ -353,6 +359,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     if args.command == "resilience":
         print(json.dumps(resilience_plane(), indent=2))
+        return 0
+    if args.command == "v14":
+        print(json.dumps(_guarded_rows(args.fixture, apply_v14), indent=2))
+        return 0
+    if args.command == "watchtower":
+        print(json.dumps(information_watchtower(_guarded_rows(args.fixture, apply_v14)), indent=2))
+        return 0
+    if args.command == "evidence":
+        print(json.dumps(evidence_plane(), indent=2))
         return 0
     grouped = group_by_symbol(load_candles(args.fixture))
     if args.symbol not in grouped:

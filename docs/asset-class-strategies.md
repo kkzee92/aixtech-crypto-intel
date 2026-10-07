@@ -152,5 +152,21 @@ paper size. See [v07-automation-and-security.md](v07-automation-and-security.md)
 `crypto-intel alerts` routes information severity only. `crypto-intel zerotrust`
 describes the research plane. Neither path can place an order.
 
+## Version 0.14 decay guards
 
+`crypto-intel v14` is a tenth pass. It can only shrink paper size. See
+[v14-decay-and-evidence.md](v14-decay-and-evidence.md).
 
+| Class | Guard | Effect |
+|---|---|---|
+| Major | Participation-decay haircut | Three falling volumes and a last return beyond 1 percent halves size |
+| Large-cap alt | Failed-follow-through haircut | A prior move beyond 3 percent retraced by more than half halves size |
+| Stablecoin | Depeg-persistence watch | Three closes beyond 20 bp on one side. Size stays zero |
+| DeFi | Liquidity-vacuum veto | Thin volume and an expanded range zeroes size |
+| Meme | Wick-rejection veto | Upper wick more than twice the body after an up bar zeroes size |
+| L2 | Bridge-flow haircut | A volume spike with a quiet print halves size |
+| RWA | Attestation-gap veto | A flat thin print zeroes size |
+| Perpetual | Funding-persistence haircut | Crowded funding that extends with price halves size |
+
+`crypto-intel watchtower` publishes an offline digest. `crypto-intel evidence`
+describes the research evidence plane. Neither path can place an order.

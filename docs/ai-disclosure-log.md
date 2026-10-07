@@ -18,3 +18,4 @@ The connected account cannot push to that repository, so this system lives on kk
 | 2026-10-05 | v0.11 per-class session guards, information bulletin, NIST CSF-style control map | Grok, xAI | pending |
 | 2026-10-06 | v0.12 per-class basis and inventory guards, information desk, custody data-security plane | Grok, xAI | pending |
 | 2026-10-07 | v0.13 per-class venue-fragmentation guards, information mesh, cyber-resilience plane | Grok, xAI | pending |
+| 2026-10-07 | v0.14 per-class decay guards, information watchtower, evidence plane | Grok, xAI | pending |
