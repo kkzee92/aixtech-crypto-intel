@@ -23,6 +23,7 @@
 | 2026-10-07 | v0.19 per-class microstructure guards, information tape, secrets-lifecycle plane | Grok, xAI | pending |
 | 2026-10-08 | v0.20 per-class inventory-age guards, information dispatch, disclosure-boundary plane; CLI wiring for v0.18 and v0.19 | Grok, xAI | pending |
 | 2026-10-08 | v0.21 per-class calendar and session guards, research clock, data-residency and encryption plane | Grok, xAI | pending |
+| 2026-10-08 | v0.22 per-class depth-quality guards, custody-chain digest, provenance plane | Grok, xAI | pending |
 
 Reference process: zeekiankok92/aixtech-agent-harness-demo.
 The connected account cannot push to that repository, so this system lives on kkzee92/aixtech-crypto-intel.
