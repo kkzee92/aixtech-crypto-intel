@@ -10,7 +10,7 @@ published from the connected account `kkzee92` because that connector cannot
 push to `zeekiankok92`.
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![version](https://img.shields.io/badge/version-0.20.0-blue)
+![version](https://img.shields.io/badge/version-0.21.0-blue)
 ![mode](https://img.shields.io/badge/execution-paper%20only-orange)
 ![Licence](https://img.shields.io/badge/licence-MIT-green)
 
@@ -41,6 +41,7 @@ push to `zeekiankok92`.
 - v0.18 adds a fourteenth-pass participation guard per asset class, an offline information console, and a data-security plane. Guards and the console cannot raise size. There is still no execution zone.
 - v0.19 adds a fifteenth-pass microstructure guard per asset class, an offline information tape, and a secrets-lifecycle plane. Guards and the tape cannot raise size. Trade, withdrawal, seed, and private-key scopes are refused. There is still no execution zone.
 - v0.20 adds a sixteenth-pass inventory-age guard per asset class, an offline information dispatch, and a disclosure-boundary plane. Guards and the dispatch cannot raise size. A public brief drops paper size. There is still no execution zone.
+- v0.21 adds a seventeenth-pass calendar and session guard per asset class, an offline research clock, and a data-residency plane. Guards and the clock cannot raise size. Research, audit, secret, and personal classes cannot leave the origin region. Encryption, audit-sign, and break-glass keys are separated and cannot trade. There is still no execution zone.
 - Backtests on **synthetic** candles only. Network access is injectable and unused by default.
 
 | Asset class | Research rule | Risk cap | Cost |
@@ -56,21 +57,8 @@ push to `zeekiankok92`.
 
 Full notes: [docs/asset-class-strategies.md](docs/asset-class-strategies.md).
 Security design: [docs/security-architecture.md](docs/security-architecture.md).
-v0.6 overlay: [docs/v06-class-and-cyber.md](docs/v06-class-and-cyber.md).
-v0.7 pipeline and sleeves: [docs/v07-automation-and-security.md](docs/v07-automation-and-security.md).
-v0.8 overlays and data plane: [docs/v08-strategies-and-dataplane.md](docs/v08-strategies-and-dataplane.md).
-v0.9 guards and zero-trust plane: [docs/v09-class-and-cyber.md](docs/v09-class-and-cyber.md).
-v0.10 liquidity guards and cyber plane: [docs/v10-liquidity-and-cyber.md](docs/v10-liquidity-and-cyber.md).
-v0.11 session guards and CSF map: [docs/v11-session-and-csf.md](docs/v11-session-and-csf.md).
-v0.12 basis guards and custody plane: [docs/v12-basis-and-custody.md](docs/v12-basis-and-custody.md).
-v0.13 fragmentation guards and resilience plane: [docs/v13-fragmentation-and-resilience.md](docs/v13-fragmentation-and-resilience.md).
-v0.14 decay guards and evidence plane: [docs/v14-decay-and-evidence.md](docs/v14-decay-and-evidence.md).
-v0.15 concentration guards and segregation plane: [docs/v15-concentration-and-segregation.md](docs/v15-concentration-and-segregation.md).
-v0.16 correlation guards and DLP plane: [docs/v16-correlation-and-dlp.md](docs/v16-correlation-and-dlp.md).
-v0.17 event-window guards and identity plane: [docs/v17-event-and-identity.md](docs/v17-event-and-identity.md).
-v0.18 participation guards and data-security plane: [docs/v18-participation-and-datasec.md](docs/v18-participation-and-datasec.md).
-v0.19 microstructure guards and secrets lifecycle: [docs/v19-microstructure-and-secrets.md](docs/v19-microstructure-and-secrets.md).
-v0.20 inventory guards and disclosure boundary: [docs/v20-inventory-and-disclosure.md](docs/v20-inventory-and-disclosure.md).
+v0.21 calendar guards and residency plane: [docs/v21-calendar-and-residency.md](docs/v21-calendar-and-residency.md).
+Earlier passes remain in `docs/v06` through `docs/v20`.
 
 ## Run
 
@@ -83,48 +71,12 @@ PYTHONPATH=src python -m crypto_intel brief fixtures/candles_synthetic.json
 PYTHONPATH=src python -m crypto_intel posture fixtures/candles_synthetic.json
 PYTHONPATH=src python -m crypto_intel scorecard fixtures/candles_synthetic.json
 PYTHONPATH=src python -m crypto_intel controls
+PYTHONPATH=src python -m crypto_intel v21 fixtures/candles_synthetic.json
+PYTHONPATH=src python -m crypto_intel clock fixtures/candles_synthetic.json
+PYTHONPATH=src python -m crypto_intel residency
 PYTHONPATH=src python -m crypto_intel v20 fixtures/candles_synthetic.json
 PYTHONPATH=src python -m crypto_intel dispatch fixtures/candles_synthetic.json
 PYTHONPATH=src python -m crypto_intel boundary
-PYTHONPATH=src python -m crypto_intel intel fixtures/candles_synthetic.json
-PYTHONPATH=src python -m crypto_intel cross fixtures/candles_synthetic.json
-PYTHONPATH=src python -m crypto_intel threats
-PYTHONPATH=src python -m crypto_intel walkforward fixtures/candles_synthetic.json --symbol BTC-USD
-PYTHONPATH=src python -m crypto_intel enhance fixtures/candles_synthetic.json
-PYTHONPATH=src python -m crypto_intel cyber
-PYTHONPATH=src python -m crypto_intel pipeline
-PYTHONPATH=src python -m crypto_intel sleeve fixtures/candles_synthetic.json
-PYTHONPATH=src python -m crypto_intel supply
-PYTHONPATH=src python -m crypto_intel v08 fixtures/candles_synthetic.json
-PYTHONPATH=src python -m crypto_intel dataplane
-PYTHONPATH=src python -m crypto_intel schedule
-PYTHONPATH=src python -m crypto_intel v09 fixtures/candles_synthetic.json
-PYTHONPATH=src python -m crypto_intel zerotrust
-PYTHONPATH=src python -m crypto_intel alerts fixtures/candles_synthetic.json
-PYTHONPATH=src python -m crypto_intel v10 fixtures/candles_synthetic.json
-PYTHONPATH=src python -m crypto_intel pack fixtures/candles_synthetic.json
-PYTHONPATH=src python -m crypto_intel cyberplane
-PYTHONPATH=src python -m crypto_intel v11 fixtures/candles_synthetic.json
-PYTHONPATH=src python -m crypto_intel bulletin fixtures/candles_synthetic.json
-PYTHONPATH=src python -m crypto_intel csf
-PYTHONPATH=src python -m crypto_intel v12 fixtures/candles_synthetic.json
-PYTHONPATH=src python -m crypto_intel desk fixtures/candles_synthetic.json
-PYTHONPATH=src python -m crypto_intel custody
-PYTHONPATH=src python -m crypto_intel v13 fixtures/candles_synthetic.json
-PYTHONPATH=src python -m crypto_intel mesh fixtures/candles_synthetic.json
-PYTHONPATH=src python -m crypto_intel resilience
-PYTHONPATH=src python -m crypto_intel v14 fixtures/candles_synthetic.json
-PYTHONPATH=src python -m crypto_intel watchtower fixtures/candles_synthetic.json
-PYTHONPATH=src python -m crypto_intel evidence
-PYTHONPATH=src python -m crypto_intel v15 fixtures/candles_synthetic.json
-PYTHONPATH=src python -m crypto_intel ledger fixtures/candles_synthetic.json
-PYTHONPATH=src python -m crypto_intel segregation
-PYTHONPATH=src python -m crypto_intel v16 fixtures/candles_synthetic.json
-PYTHONPATH=src python -m crypto_intel radar fixtures/candles_synthetic.json
-PYTHONPATH=src python -m crypto_intel dlp
-PYTHONPATH=src python -m crypto_intel v17 fixtures/candles_synthetic.json
-PYTHONPATH=src python -m crypto_intel beacon fixtures/candles_synthetic.json
-PYTHONPATH=src python -m crypto_intel identity
 PYTHONPATH=src python -m crypto_intel demo fixtures/candles_synthetic.json
 ```
 
@@ -154,6 +106,7 @@ The fixture is labelled `SYNTHETIC` and is not a market history.
 20. v0.15 concentration guards and the information ledger cannot raise size. The segregation plane has no execution zone. A researcher cannot append the audit log. An automation runner cannot read research records. Dual control cannot enable live trading.
 21. v0.16 correlation guards and the information radar cannot raise size. The DLP plane has no execution zone. Secret, wallet, email, and phone-like strings are blocked before egress. An automation runner cannot emit a digest or enable live trading.
 22. v0.17 event-window guards and the information beacon cannot raise size. The identity plane has no execution zone. A session cannot be reused across roles. Trade, withdrawal, and seed scopes are refused. An automation runner cannot mint a session or enable live trading.
+23. v0.21 calendar guards and the research clock cannot raise size. The residency plane has no execution zone. Research, audit, secret, and personal classes cannot cross a region boundary. Encryption, audit-sign, and break-glass keys are separated and cannot trade or enable live trading.
 
 ## Honesty
 
