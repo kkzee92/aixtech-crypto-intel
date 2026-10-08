@@ -11,6 +11,7 @@ from crypto_intel.market import group_by_symbol, load_candles
 from crypto_intel.models import Side
 from crypto_intel.v18 import apply_v18, data_security_architecture, information_console
 from crypto_intel.v21 import apply_v21, data_residency_plane, research_clock
+from crypto_intel.v22 import apply_v22, custody_chain, provenance_plane
 
 
 def _rows(fixture: str, guard) -> list[dict[str, object]]:
@@ -29,7 +30,7 @@ def _rows(fixture: str, guard) -> list[dict[str, object]]:
 
 def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
-    handled = {"v18", "console", "datasec", "v21", "clock", "residency"}
+    handled = {"v18", "console", "datasec", "v21", "clock", "residency", "v22", "provenance", "chain"}
     if args and args[0] in handled:
         command = args[0]
         if command == "datasec":
@@ -38,14 +39,20 @@ def main(argv: list[str] | None = None) -> int:
         if command == "residency":
             print(json.dumps(data_residency_plane(), indent=2))
             return 0
+        if command == "provenance":
+            print(json.dumps(provenance_plane(), indent=2))
+            return 0
         if len(args) < 2:
             raise SystemExit(f"{command} requires a fixture path")
         if command in {"v18", "console"}:
             rows = _rows(args[1], apply_v18)
             payload = information_console(rows) if command == "console" else rows
-        else:
+        elif command in {"v21", "clock"}:
             rows = _rows(args[1], apply_v21)
             payload = research_clock(rows) if command == "clock" else rows
+        else:
+            rows = _rows(args[1], apply_v22)
+            payload = custody_chain(rows) if command == "chain" else rows
         print(json.dumps(payload, indent=2))
         return 0
     return cli_main(args)
