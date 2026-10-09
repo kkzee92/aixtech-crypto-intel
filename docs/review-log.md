@@ -15,3 +15,4 @@
 | 2026-10-07 | v0.16 correlation guards, radar, DLP egress plane | pending human | automated tests to be recorded; human sign-off still required |
 | 2026-10-08 | v0.20 inventory guards, dispatch, disclosure boundary | pending human | automated tests to be recorded; human sign-off still required |
 | 2026-10-09 | v0.22 liquidity guards, desk, kill-chain plane | pending human | automated tests passed locally at 91 percent coverage; human sign-off still required |
+| 2026-10-09 | v0.23 flow guards, information bus, data-flow plane | pending human | automated tests passed locally at 91 percent coverage; human sign-off still required |
