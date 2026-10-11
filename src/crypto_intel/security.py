@@ -1,6 +1,7 @@
-"""Cyber and data-security controls for the information system.
+"""Cyber and data-security controls for the information system (v0.3+).
 
 This is a research control plane, not a certified security product.
+Enhancements: broader secret patterns, feed anomaly helpers, explicit classification.
 """
 
 from __future__ import annotations
@@ -8,13 +9,15 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import dataclass
+from statistics import fmean, pstdev
 
 from crypto_intel.models import AuditEvent, ExecutionMode
 
 SECRET_PATTERNS = (
-    re.compile(r"(?i)(api[_-]?key|secret|password|token)\s*[:=]\s*['\"]?[A-Za-z0-9_\-]{12,}"),
+    re.compile(r"(?i)(api[_-]?key|secret|password|token|private[_-]?key|seed)\s*[:=]\s*['\"]?[A-Za-z0-9_\-]{12,}"),
     re.compile(r"\b(?:sk|pk)_(?:live|test)_[A-Za-z0-9]{8,}\b"),
     re.compile(r"\b[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}\b", re.IGNORECASE),
+    re.compile(r"\b(?:0x)?[a-fA-F0-9]{64}\b"),  # possible private key hex
 )
 
 WALLET_PATTERN = re.compile(r"\b0x[a-fA-F0-9]{40}\b")
@@ -30,9 +33,11 @@ class DataClassification:
 CLASSIFICATION = (
     DataClassification("symbol", "public", "research retention"),
     DataClassification("ohlcv", "public-market", "research retention"),
+    DataClassification("funding_rate", "public-market", "research retention"),
     DataClassification("exchange_api_key", "secret", "never stored"),
     DataClassification("wallet_address", "sensitive-identifier", "do not fixture"),
     DataClassification("account_email", "personal", "do not collect"),
+    DataClassification("private_key", "secret", "never stored or logged"),
 )
 
 
@@ -55,6 +60,19 @@ def assert_paper_only(mode: ExecutionMode) -> None:
 def hash_event(previous_hash: str, sequence: int, action: str, detail: str) -> str:
     material = f"{previous_hash}|{sequence}|{action}|{detail}".encode()
     return hashlib.sha256(material).hexdigest()
+
+
+def feed_anomaly(prices: list[float], threshold_z: float = 3.0) -> bool:
+    """Simple research anomaly flag on recent returns. Not a production detector."""
+    if len(prices) < 10:
+        return False
+    rets = [prices[i] / prices[i - 1] - 1.0 for i in range(1, len(prices))]
+    mu = fmean(rets)
+    sigma = pstdev(rets) if len(rets) > 1 else 0.0
+    if sigma == 0:
+        return False
+    z = abs(rets[-1] - mu) / sigma
+    return z > threshold_z
 
 
 class AuditLog:
