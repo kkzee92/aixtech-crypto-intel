@@ -1,6 +1,7 @@
 """Cyber and data-security controls for the information system.
 
 This is a research control plane, not a certified security product.
+Version 0.26 expands redaction for mnemonics, private-key markers, and additional secret formats.
 """
 
 from __future__ import annotations
@@ -15,6 +16,9 @@ SECRET_PATTERNS = (
     re.compile(r"(?i)(api[_-]?key|secret|password|token)\s*[:=]\s*['\"]?[A-Za-z0-9_\-]{12,}"),
     re.compile(r"\b(?:sk|pk)_(?:live|test)_[A-Za-z0-9]{8,}\b"),
     re.compile(r"\b[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}\b", re.IGNORECASE),
+    re.compile(r"\b(?:seed phrase|mnemonic|private key|xprv|xpub)\b", re.IGNORECASE),
+    re.compile(r"\b[0-9a-fA-F]{64}\b"),  # raw private key hex
+    re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"),  # AWS-style keys
 )
 
 WALLET_PATTERN = re.compile(r"\b0x[a-fA-F0-9]{40}\b")
@@ -30,9 +34,12 @@ class DataClassification:
 CLASSIFICATION = (
     DataClassification("symbol", "public", "research retention"),
     DataClassification("ohlcv", "public-market", "research retention"),
+    DataClassification("funding_rate", "public-market", "research retention"),
     DataClassification("exchange_api_key", "secret", "never stored"),
     DataClassification("wallet_address", "sensitive-identifier", "do not fixture"),
     DataClassification("account_email", "personal", "do not collect"),
+    DataClassification("mnemonic", "secret", "never stored; redacted"),
+    DataClassification("private_key", "secret", "never stored; redacted"),
 )
 
 
