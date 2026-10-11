@@ -1,7 +1,7 @@
 """Cyber and data-security controls for the information system.
 
 This is a research control plane, not a certified security product.
-Version 0.26 expands redaction for mnemonics, private-key markers, and additional secret formats.
+Version 0.27 expands redaction for JWTs, Slack tokens, and adds an integrity digest helper.
 """
 
 from __future__ import annotations
@@ -19,6 +19,9 @@ SECRET_PATTERNS = (
     re.compile(r"\b(?:seed phrase|mnemonic|private key|xprv|xpub)\b", re.IGNORECASE),
     re.compile(r"\b[0-9a-fA-F]{64}\b"),  # raw private key hex
     re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"),  # AWS-style keys
+    re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b"),  # JWT
+    re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b"),  # Slack tokens
+    re.compile(r"\b[A-Za-z0-9+/]{40,}={0,2}\b"),  # high-entropy base64-like
 )
 
 WALLET_PATTERN = re.compile(r"\b0x[a-fA-F0-9]{40}\b")
@@ -40,6 +43,8 @@ CLASSIFICATION = (
     DataClassification("account_email", "personal", "do not collect"),
     DataClassification("mnemonic", "secret", "never stored; redacted"),
     DataClassification("private_key", "secret", "never stored; redacted"),
+    DataClassification("jwt_token", "secret", "never stored; redacted"),
+    DataClassification("slack_token", "secret", "never stored; redacted"),
 )
 
 
@@ -62,6 +67,11 @@ def assert_paper_only(mode: ExecutionMode) -> None:
 def hash_event(previous_hash: str, sequence: int, action: str, detail: str) -> str:
     material = f"{previous_hash}|{sequence}|{action}|{detail}".encode()
     return hashlib.sha256(material).hexdigest()
+
+
+def integrity_digest(payload: str) -> str:
+    """SHA-256 of a redacted payload for source attestation."""
+    return hashlib.sha256(redact(payload).encode()).hexdigest()
 
 
 class AuditLog:
