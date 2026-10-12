@@ -17,13 +17,13 @@ Regime labels, from `regime.py`:
 Hypothesis: liquid majors trend often enough that a fast EMA above a slow EMA
 is usable, unless RSI is stretched or the book is in stress. Mean reversion is
 allowed only in a range regime. Cap 8%. Horizon 8 or 20 bars. Research cost
-8 bps round trip.
+8 bps round trip. v0.28 adds an ATR% stand-aside when average range exceeds ~4%.
 
 ## Large-cap alt
 
 Hypothesis: breakouts without volume are noise, and stress-regime breakouts are
 gap risk. Entry needs a close above the prior five-bar high, volume at least
-1.2 times the recent average, and a non-stress regime. Cap 4%. Cost 14 bps.
+1.2 times the recent average (raised to 1.5x in v0.28), and a non-stress regime. Cap 4%. Cost 14 bps.
 
 ## Stablecoin
 
@@ -35,24 +35,24 @@ zero. Cost assumption is unused because no order is allowed.
 
 Hypothesis: trend signals in high realised-volatility or stress regimes are
 mostly gap risk. Stand aside if mean absolute return over 8 bars exceeds 6%
-or the regime is stress. Cap 2%. Cost 22 bps.
+or the regime is stress. Cap 2%. Cost 22 bps. v0.28 requires a multi-bar volume trend.
 
 ## Meme
 
 Hypothesis: most bursts are untradeable. A long is allowed only after a 15%
-four-bar burst, rising volume, a volume floor, and an eight-bar extension that
+four-bar burst, rising volume, a volume floor (raised to 3000 in v0.28), and an eight-bar extension that
 is still under 40%. Horizon is 3 bars. Cap 0.5%. Cost 45 bps.
 
 ## L2
 
 Hypothesis: L2 tokens are bets on relative strength versus a benchmark. No
-benchmark, or a benchmark in stress, means no trade. Cap 3%. Cost 16 bps.
+benchmark, or a benchmark in stress, means no trade. Cap 3%. Cost 16 bps. v0.28 adds an own-ATR guard.
 
 ## RWA
 
 Hypothesis: tokenised real-world assets should be slow. An open-to-prior-close
 gap above 8%, or a stress regime, halts the idea. Cap 2%, horizon 24 bars.
-Cost 12 bps.
+Cost 12 bps. Participation checks strengthened in v0.28.
 
 ## Perpetual
 
@@ -76,101 +76,6 @@ equity by class on the synthetic fixture only.
 - A broker adapter. That would be a separate human-approved system.
 - Claims about future returns. Scores describe the synthetic fixture.
 
-## Version 0.4 information overlays
+## Version 0.28 adaptive filters
 
-The class rules above still produce the primary idea. `crypto-intel intel`
-then applies three overlays. A failed overlay sets directional paper size to
-zero. It does not send an order.
-
-| Class | Confirmation | Size overlay |
-|---|---|---|
-| Major | Close still above the 8-bar EMA, and not in stress | Vol target 2%, cap 8% |
-| Large-cap alt | Breakout volume still at or above its base | Vol target 3%, cap 4% |
-| Stablecoin | No directional confirmation. Alerts stay alerts | Cap remains 0 |
-| DeFi | Calm realised vol and trend still intact | Vol target 2.5%, cap 2%. `*-LST` sleeve cap 1% |
-| Meme | Eight-bar extension still inside 40% | Vol target 5%, cap 0.5% |
-| L2 | Benchmark present, not in stress, excess return still positive | Vol target 2.8%, cap 3% |
-| RWA | Gap still inside 8% | Vol target 1.5%, cap 2% |
-| Perpetual | Funding still supports the carry or the crowded fade | Vol target 2%, long cap 2%, short cap 1% |
-
-Liquid staking is a sleeve inside DeFi, not a ninth class, so the fixture
-schema stays stable. Volatility targeting can shrink a size and cannot raise
-a class cap.
-
-## Version 0.5 book and pair overlays
-
-The class rules still produce the primary idea. `crypto-intel cross` applies
-a book overlay after the v0.4 information path.
-
-| Class | v0.5 enhancement | Effect |
-|---|---|---|
-| Major | ETH/BTC six-bar relative sleeve, 4% threshold, 2% cap | Names the leader. Stands aside if either leg is in stress. Does not short the laggard |
-| Large-cap alt | Beta spillover | Directional size goes to zero when BTC-USD is in stress |
-| Stablecoin | Basket contagion | Two or more peg watches become a book alert. Size stays zero |
-| DeFi | Beta spillover, including the LST sleeve | Directional size goes to zero in benchmark stress |
-| Meme | Beta spillover on top of the chase filter | Directional size goes to zero in benchmark stress |
-| L2 | Beta spillover plus the existing benchmark check | Either stress condition blocks the relative-strength idea |
-| RWA | Breadth halt only | Not in the crypto-beta cluster. Halted when half of non-stable series are in stress |
-| Perpetual | Beta spillover | Carry and crowded-fade paper size go to zero in benchmark stress |
-
-A breadth halt fires when at least half of the non-stable series are in
-stress. It overrides every directional idea, including RWA. None of these
-overlays can place or route an order.
-
-## Version 0.7 sleeves
-
-`crypto-intel sleeve` is a third pass after the class rule. It can only shrink
-paper size. See [v07-automation-and-security.md](v07-automation-and-security.md).
-
-| Class | Sleeve | Effect |
-|---|---|---|
-| Major | ATR expansion haircut | Last bar range above 2x the prior median halves size |
-| Large-cap alt | Relative-lag veto | Missing benchmark, or lagging it by more than 2%, zeroes size |
-| Stablecoin | Peg-dispersion watch | Bar range of 40 bps or more is a watch. Size stays zero |
-| DeFi | Protocol-gap halt | Open gap above 5% zeroes size |
-| Meme | Volume-decay haircut | Volume below half the recent peak halves size |
-| L2 | Sequencer-gap proxy | Open gap above 4% zeroes size |
-| RWA | Stale-print haircut | Three identical closes halve size |
-| Perpetual | Funding-sign flip | A sign change versus the prior bar zeroes carry or fade size |
-
-## Version 0.9 guards
-
-`crypto-intel v09` is a fifth pass. It can only shrink paper size. See
-[v09-class-and-cyber.md](v09-class-and-cyber.md).
-
-| Class | Guard | Effect |
-|---|---|---|
-| Major | Drawdown-cluster haircut | Five consecutive lower closes halve size |
-| Large-cap alt | Idiosyncratic gap veto | Open gap above 6% zeroes size |
-| Stablecoin | Tertiary peg watch | Deviation of 10 bp or more is a watch. Size stays zero |
-| DeFi | Bar-range stress halt | Last bar range above 5% zeroes size |
-| Meme | Three-bar chase veto | A 25% rise over three rising bars zeroes size |
-| L2 | Benchmark-lag haircut | Lagging the benchmark by more than 4% over six bars halves size |
-| RWA | Stale-print veto | More than 36 hours between the last two prints zeroes size |
-| Perpetual | Extreme-funding veto | Absolute funding above 20 bp zeroes size |
-
-`crypto-intel alerts` routes information severity only. `crypto-intel zerotrust`
-describes the research plane. Neither path can place an order.
-
-## Version 0.14 decay guards
-
-`crypto-intel v14` is a tenth pass. It can only shrink paper size. See
-[v14-decay-and-evidence.md](v14-decay-and-evidence.md).
-
-| Class | Guard | Effect |
-|---|---|---|
-| Major | Participation-decay haircut | Three falling volumes and a last return beyond 1 percent halves size |
-| Large-cap alt | Failed-follow-through haircut | A prior move beyond 3 percent retraced by more than half halves size |
-| Stablecoin | Depeg-persistence watch | Three closes beyond 20 bp on one side. Size stays zero |
-| DeFi | Liquidity-vacuum veto | Thin volume and an expanded range zeroes size |
-| Meme | Wick-rejection veto | Upper wick more than twice the body after an up bar zeroes size |
-| L2 | Bridge-flow haircut | A volume spike with a quiet print halves size |
-| RWA | Attestation-gap veto | A flat thin print zeroes size |
-| Perpetual | Funding-persistence haircut | Crowded funding that extends with price halves size |
-
-`crypto-intel watchtower` publishes an offline digest. `crypto-intel evidence`
-describes the research evidence plane. Neither path can place an order.
-
-## Version 0.20 inventory overlay
-
-Each class has an additional inventory-age guard in `v20.py`. The guard can only shrink paper size. Majors haircut a three-bar volume drought. Large-cap alts haircut a close below the prior three-bar midpoint. Stablecoins stay at zero and watch a two-bar peg deviation. DeFi haircuts a jump inside a narrow bar. Memes veto a burst that fades on falling volume. L2 haircuts a flat, collapsing-volume stall. RWA haircuts a range break versus its own median. Perpetuals veto a funding-sign flip. Notes: [v20-inventory-and-disclosure.md](v20-inventory-and-disclosure.md).
+See [v28-adaptive-filters-and-redaction.md](v28-adaptive-filters-and-redaction.md) for the full layer. Core rules remain subject to all prior overlays; the new filters only tighten entry conditions.
