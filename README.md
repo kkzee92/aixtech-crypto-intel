@@ -5,7 +5,7 @@ evaluation. It does not place live orders, does not store exchange secrets, and
 is not financial advice.
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![version](https://img.shields.io/badge/version-0.28.0-blue)
+![version](https://img.shields.io/badge/version-0.29.0-blue)
 ![mode](https://img.shields.io/badge/execution-paper%20only-orange)
 ![Licence](https://img.shields.io/badge/licence-MIT-green)
 
@@ -20,10 +20,10 @@ is not financial advice.
 
 | Asset class | Research rule (core) | Risk cap | Cost |
 |---|---|---|---|
-| Major (BTC, ETH) | EMA trend outside stress; range-only RSI reversion + volume + multi-TF + ATR filter | 8% | 8 bps |
-| Large-cap alt | Breakout with volume acceleration ≥1.5x + RSI guard, suppressed in stress | 4% | 14 bps |
+| Major (BTC, ETH) | EMA trend (dual-side) outside stress; range-only RSI reversion + volume + multi-TF + ATR filter | 8% / 4% | 8 bps |
+| Large-cap alt | Breakout with volume acceleration ≥1.5x + RSI guard + idiosyncratic filter, suppressed in stress | 4% | 14 bps |
 | Stablecoin | 20 bp watch, 50 bp depeg alert. No order | 0% | n/a |
-| DeFi | Trend only in a calm multi-TF, non-stress regime + volume-trend filter | 2% | 22 bps |
+| DeFi | Trend only in a calm multi-TF, non-stress regime + volume-trend filter + correlation guard | 2% | 22 bps |
 | Meme | Qualified burst with acceleration, chase filter, 3-bar horizon, stricter liquidity | 0.5% | 45 bps |
 | L2 | Relative strength versus a non-stress, non-declining benchmark + ATR guard | 3% | 16 bps |
 | RWA | Slow trend; halt on an 8% gap, stress, or thin participation / elevated vol | 2% | 12 bps |
@@ -31,7 +31,7 @@ is not financial advice.
 
 Full notes: [docs/asset-class-strategies.md](docs/asset-class-strategies.md).
 Security design: [docs/security-architecture.md](docs/security-architecture.md).
-Latest enhancement layer: [docs/v28-adaptive-filters-and-redaction.md](docs/v28-adaptive-filters-and-redaction.md).
+Latest enhancement layer: [docs/v29-adaptive-correlation-and-secrets.md](docs/v29-adaptive-correlation-and-secrets.md).
 
 ## Run
 
@@ -55,7 +55,7 @@ The fixture is labelled `SYNTHETIC` and is not a market history.
 4. Hash-chained audit log, source attestation, feed jump and staleness checks, integrity digest helper.
 5. PDPA-style tripwire over fixtures and docs.
 6. Ruff lint (including bandit-style `S` rules), format, pytest coverage floor, gitleaks in CI.
-7. Expanded secret redaction (API keys, wallets, emails, mnemonics, private-key markers, JWTs, Slack tokens, GitHub PATs, Discord tokens).
+7. Expanded secret redaction (API keys, wallets, emails, mnemonics, private-key markers, JWTs, Slack tokens, GitHub PATs, Discord tokens, OpenAI keys, Telegram tokens) plus structured `redact_mapping`.
 
 ## Honesty
 
