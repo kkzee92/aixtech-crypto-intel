@@ -1,7 +1,7 @@
 """Cyber and data-security controls for the information system.
 
 This is a research control plane, not a certified security product.
-Version 0.28 expands redaction for GitHub PATs, Discord tokens, and additional high-entropy markers.
+Version 0.29 expands redaction for OpenAI keys, Telegram tokens, and adds structured redaction helper.
 """
 
 from __future__ import annotations
@@ -9,12 +9,14 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import dataclass
+from typing import Any
 
 from crypto_intel.models import AuditEvent, ExecutionMode
 
 SECRET_PATTERNS = (
     re.compile(r"(?i)(api[_-]?key|secret|password|token)\s*[:=]\s*['\"]?[A-Za-z0-9_\-]{12,}"),
     re.compile(r"\b(?:sk|pk)_(?:live|test)_[A-Za-z0-9]{8,}\b"),
+    re.compile(r"\bsk-(?:proj-)?[A-Za-z0-9]{20,}\b"),  # OpenAI-style
     re.compile(r"\b[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}\b", re.IGNORECASE),
     re.compile(r"\b(?:seed phrase|mnemonic|private key|xprv|xpub)\b", re.IGNORECASE),
     re.compile(r"\b[0-9a-fA-F]{64}\b"),  # raw private key hex
@@ -24,6 +26,7 @@ SECRET_PATTERNS = (
     re.compile(r"\bghp_[A-Za-z0-9]{36}\b"),  # GitHub PAT classic
     re.compile(r"\bgithub_pat_[A-Za-z0-9_]{80,}\b"),  # GitHub fine-grained PAT
     re.compile(r"\b[MN][A-Za-z0-9]{23}\.[A-Za-z0-9_-]{6}\.[A-Za-z0-9_-]{27,}\b"),  # Discord token style
+    re.compile(r"\b\d{8,10}:[A-Za-z0-9_-]{30,}\b"),  # Telegram bot token style
     re.compile(r"\b[A-Za-z0-9+/]{40,}={0,2}\b"),  # high-entropy base64-like
 )
 
@@ -50,6 +53,8 @@ CLASSIFICATION = (
     DataClassification("slack_token", "secret", "never stored; redacted"),
     DataClassification("github_pat", "secret", "never stored; redacted"),
     DataClassification("discord_token", "secret", "never stored; redacted"),
+    DataClassification("openai_key", "secret", "never stored; redacted"),
+    DataClassification("telegram_token", "secret", "never stored; redacted"),
 )
 
 
@@ -58,6 +63,17 @@ def redact(text: str) -> str:
     for pattern in SECRET_PATTERNS:
         cleaned = pattern.sub("[REDACTED]", cleaned)
     return WALLET_PATTERN.sub("[WALLET]", cleaned)
+
+
+def redact_mapping(obj: Any) -> Any:
+    """Recursively redact secrets in dicts, lists, and strings."""
+    if isinstance(obj, str):
+        return redact(obj)
+    if isinstance(obj, dict):
+        return {k: redact_mapping(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [redact_mapping(v) for v in obj]
+    return obj
 
 
 def contains_secret(text: str) -> bool:
