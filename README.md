@@ -5,7 +5,7 @@ evaluation. It does not place live orders, does not store exchange secrets, and
 is not financial advice.
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![version](https://img.shields.io/badge/version-0.27.0-blue)
+![version](https://img.shields.io/badge/version-0.28.0-blue)
 ![mode](https://img.shields.io/badge/execution-paper%20only-orange)
 ![Licence](https://img.shields.io/badge/licence-MIT-green)
 
@@ -20,18 +20,18 @@ is not financial advice.
 
 | Asset class | Research rule (core) | Risk cap | Cost |
 |---|---|---|---|
-| Major (BTC, ETH) | EMA trend outside stress; range-only RSI reversion + volume + multi-TF confirmation | 8% | 8 bps |
-| Large-cap alt | Breakout with volume acceleration + RSI guard, suppressed in stress | 4% | 14 bps |
-| Stablecoin | 20 bp watch, 50 bp depeg alert. No order | 0% | n/a |
-| DeFi | Trend only in a calm multi-TF, non-stress regime + volume filter | 2% | 22 bps |
-| Meme | Qualified burst with acceleration, chase filter, 3-bar horizon, tighter liquidity | 0.5% | 45 bps |
-| L2 | Relative strength versus a non-stress, non-declining benchmark + absolute floor | 3% | 16 bps |
-| RWA | Slow trend; halt on an 8% gap, stress, or thin participation | 2% | 12 bps |
-| Perpetual | Negative-funding carry with persistence if drift is contained; crowded funding fade (paper short) | 2% / 1% | 10 bps |
+| Major (BTC, ETH) | EMA trend + MACD/BB + volume + multi-TF outside stress; range-only RSI reversion | 8% | 8 bps |
+| Large-cap alt | Breakout with volume acceleration + RSI/percentile guard, suppressed in stress | 4% | 14 bps |
+| Stablecoin | 20 bp watch, 50 bp depeg alert (persistence preferred). No order | 0% | n/a |
+| DeFi | Trend only in a calm multi-TF, non-stress regime + volume + vol-decay filter | 2% | 22 bps |
+| Meme | Qualified burst with acceleration, chase filter, anti-pump, 3-bar horizon | 0.5% | 45 bps |
+| L2 | Relative strength versus a non-stress, non-declining benchmark + consistency | 3% | 16 bps |
+| RWA | Slow trend; halt on an 8% gap, stress, thin participation or low volume/ATR | 2% | 12 bps |
+| Perpetual | Negative-funding carry with persistence + MA if drift contained; crowded funding fade | 2% / 1% | 10 bps |
 
 Full notes: [docs/asset-class-strategies.md](docs/asset-class-strategies.md).
 Security design: [docs/security-architecture.md](docs/security-architecture.md).
-Latest enhancement layer: [docs/v27-multitimeframe-and-integrity.md](docs/v27-multitimeframe-and-integrity.md).
+Latest enhancement layer: [docs/v28-enhanced-strategies-and-zerotrust.md](docs/v28-enhanced-strategies-and-zerotrust.md).
 
 ## Run
 
@@ -52,10 +52,11 @@ The fixture is labelled `SYNTHETIC` and is not a market history.
 1. Paper-only execution. `HALTED` and any live mode raise `PermissionError`.
 2. Trade and withdrawal credential names are refused. No role can place an order.
 3. Class size caps, confidence floors, kill switch, drawdown halt, RWA gap halt, stress overlay, book exposure limits, multi-pass confirmation/sleeve/guard layers.
-4. Hash-chained audit log, source attestation, feed jump and staleness checks, integrity digest helper.
+4. Hash-chained audit log (with optional role/timestamp), source attestation, continuous zero-trust digest check, feed jump and staleness checks, integrity digest helper.
 5. PDPA-style tripwire over fixtures and docs.
 6. Ruff lint (including bandit-style `S` rules), format, pytest coverage floor, gitleaks in CI.
 7. Expanded secret redaction (API keys, wallets, emails, mnemonics, private-key markers, JWTs, Slack tokens).
+8. Data classification includes derived signals as research-only short retention.
 
 ## Honesty
 
