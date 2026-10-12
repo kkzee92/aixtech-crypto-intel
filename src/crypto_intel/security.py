@@ -1,7 +1,8 @@
 """Cyber and data-security controls for the information system.
 
 This is a research control plane, not a certified security product.
-Version 0.27 expands redaction for JWTs, Slack tokens, and adds an integrity digest helper.
+Version 0.28 adds zero-trust continuous attestation, expanded classification,
+and simulated timestamp support in the audit chain.
 """
 
 from __future__ import annotations
@@ -9,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
 from crypto_intel.models import AuditEvent, ExecutionMode
 
@@ -38,6 +40,7 @@ CLASSIFICATION = (
     DataClassification("symbol", "public", "research retention"),
     DataClassification("ohlcv", "public-market", "research retention"),
     DataClassification("funding_rate", "public-market", "research retention"),
+    DataClassification("derived_signal", "research-only", "short retention; not persistent"),
     DataClassification("exchange_api_key", "secret", "never stored"),
     DataClassification("wallet_address", "sensitive-identifier", "do not fixture"),
     DataClassification("account_email", "personal", "do not collect"),
@@ -74,18 +77,29 @@ def integrity_digest(payload: str) -> str:
     return hashlib.sha256(redact(payload).encode()).hexdigest()
 
 
+def continuous_attest(label: str, body: str, expected_digest: str | None = None) -> str:
+    """Zero-trust continuous verification helper. Aborts conceptually on mismatch."""
+    digest = integrity_digest(f"{label}|{body}")
+    if expected_digest and digest != expected_digest:
+        raise ValueError("source attestation mismatch; research abort")
+    return digest
+
+
 class AuditLog:
-    """Append-only hash chain. Tampering changes the next digest."""
+    """Append-only hash chain. Tampering changes the next digest.
+    Optional role and simulated UTC timestamp for research audit."""
 
     def __init__(self) -> None:
         self.events: list[AuditEvent] = []
         self._previous = "GENESIS"
 
-    def append(self, action: str, detail: str) -> AuditEvent:
+    def append(self, action: str, detail: str, role: str = "researcher") -> AuditEvent:
         safe_detail = redact(detail)
+        timestamp = datetime.now(timezone.utc).isoformat()
+        enriched = f"{safe_detail} | role={role} | ts={timestamp}"
         sequence = len(self.events) + 1
-        digest = hash_event(self._previous, sequence, action, safe_detail)
-        event = AuditEvent(sequence, action, safe_detail, self._previous, digest)
+        digest = hash_event(self._previous, sequence, action, enriched)
+        event = AuditEvent(sequence, action, enriched, self._previous, digest)
         self.events.append(event)
         self._previous = digest
         return event
