@@ -2,7 +2,7 @@
 
 Transparent heuristics for paper research. Not forecasts and not a recommendation
 to trade. Each class has an entry, an invalidation, and a regime overlay.
-Version 0.27 adds multi-timeframe confirmation and volume acceleration filters.
+Version 0.28 adds adaptive ATR/volatility and multi-bar participation filters.
 """
 
 from __future__ import annotations
@@ -14,14 +14,14 @@ from crypto_intel.regime import Regime, classify
 
 PLAYBOOK: dict[AssetClass, dict[str, str]] = {
     AssetClass.MAJOR: {
-        "hypothesis": "Liquid majors trend, except when RSI is stretched or the book is in stress. Volume confirmation and multi-timeframe EMA reduce false breaks.",
-        "entry": "Fast EMA above slow EMA with RSI 45-70, rising volume, and 21-bar EMA not falling, outside stress.",
-        "invalidation": "Stress regime, RSI above 70, falling volume, or declining longer EMA.",
+        "hypothesis": "Liquid majors trend, except when RSI is stretched, the book is in stress, or ATR is elevated. Volume and multi-TF confirmation reduce false breaks.",
+        "entry": "Fast EMA above slow EMA with RSI 45-70, rising volume, multi-TF EMA ok, and ATR% under ~4%, outside stress.",
+        "invalidation": "Stress regime, RSI above 70, falling volume, declining longer EMA, or elevated ATR.",
         "horizon": "8 bars mean-reversion, 20 bars trend",
     },
     AssetClass.LARGE_CAP_ALT: {
-        "hypothesis": "Breakouts without volume are noise, and stress-regime breakouts are mostly gap risk. RSI guard and volume acceleration avoid weak chase.",
-        "entry": "Close above the prior five-bar high, volume ≥1.2x base and accelerating, RSI under 75, outside stress.",
+        "hypothesis": "Breakouts without strong volume are noise, and stress-regime breakouts are mostly gap risk. RSI guard and volume acceleration avoid weak chase.",
+        "entry": "Close above the prior five-bar high, volume ≥1.5x base and accelerating, RSI under 75, outside stress.",
         "invalidation": "Stress regime, volume confirmation missing, or RSI stretched.",
         "horizon": "12 bars",
     },
@@ -32,27 +32,27 @@ PLAYBOOK: dict[AssetClass, dict[str, str]] = {
         "horizon": "1 bar monitor",
     },
     AssetClass.DEFI: {
-        "hypothesis": "Trend only in a calm realised-vol regime with supporting volume and multi-timeframe confirmation.",
-        "entry": "Close above 8-bar EMA, 8-bar and 13-bar realised vol ≤6%/5%, rising volume, not in stress.",
-        "invalidation": "Stress regime, elevated vol, or falling volume.",
+        "hypothesis": "Trend only in a calm realised-vol regime with supporting multi-bar volume and multi-timeframe confirmation.",
+        "entry": "Close above 8-bar EMA, 8-bar and 13-bar realised vol ≤6%/5%, volume rising over 5 bars, not in stress.",
+        "invalidation": "Stress regime, elevated vol, or falling volume trend.",
         "horizon": "10 bars",
     },
     AssetClass.MEME: {
-        "hypothesis": "Most bursts are untradeable. A qualified burst still gets a hard time stop, tighter liquidity, and volume acceleration.",
-        "entry": "15% four-bar burst, rising and accelerating volume, volume floor of 2000, and not already extended 40% over 8 bars.",
+        "hypothesis": "Most bursts are untradeable. A qualified burst still gets a hard time stop, stricter liquidity, and volume acceleration.",
+        "entry": "15% four-bar burst, rising and accelerating volume, volume floor of 3000, and not already extended 40% over 8 bars.",
         "invalidation": "Thin liquidity proxy or chase extension.",
         "horizon": "3 bars",
     },
     AssetClass.L2: {
-        "hypothesis": "L2 tokens are relative-strength bets versus a non-declining benchmark.",
-        "entry": "Six-bar excess return above 3% versus benchmark, own return positive, benchmark not in stress and not declining over 8 bars.",
-        "invalidation": "Missing benchmark, benchmark stress, or negative absolute/benchmark return.",
+        "hypothesis": "L2 tokens are relative-strength bets versus a non-declining benchmark, and own ATR should not be extreme.",
+        "entry": "Six-bar excess return above 3% versus benchmark, own return positive, benchmark not in stress and not declining, own ATR% moderate.",
+        "invalidation": "Missing benchmark, benchmark stress, negative absolute/benchmark return, or extreme own ATR.",
         "horizon": "12 bars",
     },
     AssetClass.RWA: {
         "hypothesis": "Tokenised real-world assets should be slow. Gaps are a halt. Low realised vol and participation preferred.",
-        "entry": "Close above 8-bar EMA and above the close five bars ago, gap inside 8%, realised vol under 3%, volume not collapsing.",
-        "invalidation": "Open gap above 8% or stress regime.",
+        "entry": "Close above 8-bar EMA and above the close five bars ago, gap inside 8%, realised vol under 3%, volume not collapsing over 5 bars.",
+        "invalidation": "Open gap above 8% or stress regime or thin participation.",
         "horizon": "24 bars",
     },
     AssetClass.PERPETUAL: {
@@ -97,6 +97,13 @@ def _volume_rising(candles: list[Candle], bars: int = 3) -> bool:
         return False
     recent = [c.volume for c in candles[-bars:]]
     return recent[-1] > fmean(recent[:-1]) if recent[:-1] else True
+
+
+def _volume_trend_rising(candles: list[Candle], bars: int = 5) -> bool:
+    if len(candles) < bars:
+        return False
+    vols = [c.volume for c in candles[-bars:]]
+    return vols[-1] > vols[0] and fmean(vols[-3:]) > fmean(vols[:2])
 
 
 def _volume_accelerating(candles: list[Candle]) -> bool:
@@ -150,12 +157,13 @@ def _major(candles: list[Candle], closes: list[float], regime: Regime) -> Signal
     rsi = _rsi(closes)
     vol_ok = _volume_rising(candles)
     mtf_ok = longer >= _ema(closes[:-1], 21) if len(closes) >= 22 else True
-    if regime is Regime.STRESS:
-        return _base(candles, Side.FLAT, 0.45, "major stress: stand aside", 0.0, 1)
+    atr = _atr_pct(candles)
+    if regime is Regime.STRESS or atr > 0.04:
+        return _base(candles, Side.FLAT, 0.45, "major stress or elevated ATR: stand aside", 0.0, 1)
     if fast > slow and 45 <= rsi <= 70 and vol_ok and mtf_ok:
-        return _base(candles, Side.LONG, 0.78, "major trend: fast EMA above slow, RSI not stretched, volume rising, multi-TF ok", 0.06, 20)
+        return _base(candles, Side.LONG, 0.79, "major trend: fast EMA above slow, RSI not stretched, volume rising, multi-TF ok, ATR contained", 0.06, 20)
     if regime is Regime.RANGE and rsi < 30 and closes[-1] > closes[-3]:
-        return _base(candles, Side.LONG, 0.64, "major mean-reversion: washed-out RSI in range", 0.03, 8)
+        return _base(candles, Side.LONG, 0.65, "major mean-reversion: washed-out RSI in range", 0.03, 8)
     return _base(candles, Side.FLAT, 0.4, "major: no trend or reversion edge", 0.0, 1)
 
 
@@ -167,8 +175,8 @@ def _breakout(candles: list[Candle], closes: list[float], size: float, bars: int
     volume_base = fmean(c.volume for c in candles[-6:-1])
     rsi = _rsi(closes)
     accel = _volume_accelerating(candles)
-    if closes[-1] > max(window) and volume_now > volume_base * 1.2 and rsi < 75 and accel:
-        return _base(candles, Side.LONG, 0.75, "breakout with volume confirmation, acceleration and RSI guard", size, bars)
+    if closes[-1] > max(window) and volume_now > volume_base * 1.5 and rsi < 75 and accel:
+        return _base(candles, Side.LONG, 0.76, "breakout with strong volume confirmation, acceleration and RSI guard", size, bars)
     return _base(candles, Side.FLAT, 0.35, "no confirmed breakout", 0.0, 1)
 
 
@@ -184,11 +192,11 @@ def _stable(candles: list[Candle]) -> Signal:
 def _defi(candles: list[Candle], closes: list[float], regime: Regime) -> Signal:
     realised8 = fmean(abs(v) for v in _returns(closes[-8:])) if len(closes) >= 8 else 1.0
     realised13 = fmean(abs(v) for v in _returns(closes[-13:])) if len(closes) >= 13 else realised8
-    vol_ok = _volume_rising(candles)
-    if regime is Regime.STRESS or realised8 > 0.06 or realised13 > 0.05 or not vol_ok:
-        return _base(candles, Side.FLAT, 0.48, "defi volatility or volume regime: stand aside", 0.0, 1)
+    vol_trend = _volume_trend_rising(candles)
+    if regime is Regime.STRESS or realised8 > 0.06 or realised13 > 0.05 or not vol_trend:
+        return _base(candles, Side.FLAT, 0.48, "defi volatility or volume-trend regime: stand aside", 0.0, 1)
     if closes[-1] > _ema(closes, 8):
-        return _base(candles, Side.LONG, 0.73, "defi trend in calm multi-TF regime with volume", 0.02, 10)
+        return _base(candles, Side.LONG, 0.74, "defi trend in calm multi-TF regime with volume trend", 0.02, 10)
     return _base(candles, Side.FLAT, 0.4, "defi: no calm trend", 0.0, 1)
 
 
@@ -197,12 +205,12 @@ def _meme(candles: list[Candle], closes: list[float]) -> Signal:
     burst = closes[-1] / closes[-4] - 1.0
     extension = closes[-1] / closes[-8] - 1.0
     accel = _volume_accelerating(candles)
-    if liquidity < 2000:
+    if liquidity < 3000:
         return _base(candles, Side.FLAT, 0.2, "meme liquidity proxy too thin", 0.0, 1)
     if extension > 0.40:
         return _base(candles, Side.FLAT, 0.35, "meme chase filter: 8-bar extension too large", 0.0, 1)
     if burst > 0.15 and candles[-1].volume > candles[-2].volume and accel:
-        return _base(candles, Side.LONG, 0.80, "meme momentum burst with acceleration; hard time stop applies", 0.005, 3)
+        return _base(candles, Side.LONG, 0.81, "meme momentum burst with acceleration; hard time stop applies", 0.005, 3)
     return _base(candles, Side.FLAT, 0.3, "meme: no qualified burst", 0.0, 1)
 
 
@@ -215,19 +223,20 @@ def _l2(candles: list[Candle], closes: list[float], benchmark: list[Candle] | No
     bench_closes = [c.close for c in benchmark]
     bench = bench_closes[-1] / bench_closes[-6] - 1.0
     bench8 = bench_closes[-1] / bench_closes[-8] - 1.0 if len(bench_closes) >= 8 else 0.0
-    if own - bench > 0.03 and own > 0 and bench8 >= 0:
-        return _base(candles, Side.LONG, 0.74, "l2 relative strength versus non-declining benchmark", 0.03, 12)
-    return _base(candles, Side.FLAT, 0.4, "l2 not leading benchmark", 0.0, 1)
+    own_atr = _atr_pct(candles)
+    if own - bench > 0.03 and own > 0 and bench8 >= 0 and own_atr < 0.05:
+        return _base(candles, Side.LONG, 0.75, "l2 relative strength versus non-declining benchmark, ATR contained", 0.03, 12)
+    return _base(candles, Side.FLAT, 0.4, "l2 not leading benchmark or ATR extreme", 0.0, 1)
 
 
 def _rwa(candles: list[Candle], closes: list[float], regime: Regime) -> Signal:
     gap = candles[-1].open / candles[-2].close - 1.0
     realised = fmean(abs(v) for v in _returns(closes[-8:])) if len(closes) >= 8 else 0.0
-    vol_ok = _volume_rising(candles, bars=5)
+    vol_ok = _volume_trend_rising(candles, bars=5)
     if abs(gap) > 0.08 or regime is Regime.STRESS or realised > 0.03 or not vol_ok:
         return _base(candles, Side.FLAT, 0.5, "rwa gap, stress, elevated vol or thin participation halt", 0.0, 1)
     if closes[-1] > _ema(closes, 8) and closes[-1] > closes[-5]:
-        return _base(candles, Side.LONG, 0.70, "rwa slow trend in low vol with participation", 0.02, 24)
+        return _base(candles, Side.LONG, 0.71, "rwa slow trend in low vol with participation", 0.02, 24)
     return _base(candles, Side.FLAT, 0.4, "rwa: no slow trend", 0.0, 1)
 
 
@@ -240,7 +249,7 @@ def _perpetual(candles: list[Candle], closes: list[float]) -> Signal:
     if funding >= 0.001:
         return _base(candles, Side.ALERT, 0.7, "perp funding crowded: monitor, no fade", 0.0, 1)
     if funding <= -0.0005 and abs(drift) < 0.04 and persistent:
-        return _base(candles, Side.LONG, 0.77, "perp funding carry: negative funding with persistence, basis contained", 0.02, 8)
+        return _base(candles, Side.LONG, 0.78, "perp funding carry: negative funding with persistence, basis contained", 0.02, 8)
     if funding <= -0.0005:
         return _base(candles, Side.FLAT, 0.5, "perp funding attractive but drift or persistence not confirmed", 0.0, 1)
     return _base(candles, Side.FLAT, 0.4, "perp: no carry edge", 0.0, 1)

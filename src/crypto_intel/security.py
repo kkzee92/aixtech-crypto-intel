@@ -1,7 +1,7 @@
 """Cyber and data-security controls for the information system.
 
 This is a research control plane, not a certified security product.
-Version 0.27 expands redaction for JWTs, Slack tokens, and adds an integrity digest helper.
+Version 0.28 expands redaction for GitHub PATs, Discord tokens, and additional high-entropy markers.
 """
 
 from __future__ import annotations
@@ -21,6 +21,9 @@ SECRET_PATTERNS = (
     re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"),  # AWS-style keys
     re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b"),  # JWT
     re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b"),  # Slack tokens
+    re.compile(r"\bghp_[A-Za-z0-9]{36}\b"),  # GitHub PAT classic
+    re.compile(r"\bgithub_pat_[A-Za-z0-9_]{80,}\b"),  # GitHub fine-grained PAT
+    re.compile(r"\b[MN][A-Za-z0-9]{23}\.[A-Za-z0-9_-]{6}\.[A-Za-z0-9_-]{27,}\b"),  # Discord token style
     re.compile(r"\b[A-Za-z0-9+/]{40,}={0,2}\b"),  # high-entropy base64-like
 )
 
@@ -45,6 +48,8 @@ CLASSIFICATION = (
     DataClassification("private_key", "secret", "never stored; redacted"),
     DataClassification("jwt_token", "secret", "never stored; redacted"),
     DataClassification("slack_token", "secret", "never stored; redacted"),
+    DataClassification("github_pat", "secret", "never stored; redacted"),
+    DataClassification("discord_token", "secret", "never stored; redacted"),
 )
 
 
