@@ -1,25 +1,22 @@
 # Security architecture
 
-Version 0.3 extends the control plane with expanded redaction, data
-classification, series integrity digests, and ATR-aware risk reduction.
-It is still a research design, not a certified security product and not legal advice.
+Version 0.5 extends the control plane with further expanded redaction (hex private-key proxies, mnemonic keywords), data-classification notes for encryption-at-rest stubs, a research key-derivation helper, and refined threat controls. It is still a research design, not a certified security product and not legal advice.
 
 ## Trust boundaries
 
 ```mermaid
 flowchart LR
     F["Synthetic fixture or injected public ticker"] --> AT["Source attestation + series integrity digest"]
-    AT --> S["Strategy research rules plus regime overlay + vol scaling"]
+    AT --> S["Strategy research rules plus regime overlay + vol scaling + multi-factor confirmation"]
     S --> R["Risk gate: class caps, kill switch, drawdown, ATR reduction"]
     R --> P["Paper fill only"]
-    P --> A["Hash-chained audit log"]
+    P --> A["Hash-chained audit log (redacted)"]
     K["Trade or withdrawal keys"] -.-> X["Refused. Never loaded"]
     RBAC["Researcher, auditor, operator"] --> R
+    ENC["Optional passphrase-derived research key"] -.-> A
 ```
 
-The system has no order router. `assert_paper_only` refuses any mode other than
-`PAPER`. `refuse_trade_secret` rejects names that look like trade, withdraw,
-transfer, or order credentials. Roles cannot enable live trading.
+The system has no order router. `assert_paper_only` refuses any mode other than `PAPER`. `refuse_trade_secret` rejects names that look like trade, withdraw, transfer, or order credentials. Roles cannot enable live trading.
 
 ## Roles
 
@@ -39,32 +36,26 @@ There is no trader role. Promoting a signal to a broker is a separate system.
 | Funding rate | Public market | Research feature only |
 | Source label | Integrity | Must be SYNTHETIC or PUBLIC_READ |
 | Series integrity digest | Integrity | SHA-256 over ordered OHLCV |
-| Read-only market key | Secret, optional | Name must say read, market, or public. Never logged |
+| Read-only market key | Secret, optional | Name must say read, market, or public. Never logged. Encrypt at rest if persisted. |
 | Trade or withdrawal key | Secret | Refused |
-| Private key / WIF / seed phrase | Secret | Redacted; never stored |
+| Private key / WIF / seed phrase / hex proxy | Secret | Redacted; never stored |
 | Wallet address | Sensitive identifier | Redacted, banned from fixtures |
+| Audit detail | Internal | Redacted before storage; optional research encryption stub |
 | Email, NRIC, phone | Personal | Tripwire in `scripts/check_pdpa.py` |
 
-PDPA note: the tripwire is not a data-loss-prevention product. A production
-deployment still needs access control, vendor review, and a human DPO decision.
-Wallet addresses can be personal data depending on context; this repo does not
-store them.
+PDPA note: the tripwire is not a data-loss-prevention product. A production deployment still needs access control, vendor review, and a human DPO decision. Wallet addresses can be personal data depending on context; this repo does not store them.
 
 ## Feed integrity
 
-`feed_status` flags a non-positive price, a print older than 15 minutes, or a
-jump above 25% versus the prior print. Tests inject the payload. The default
-path does not open a socket.
+`feed_status` flags a non-positive price, a print older than 15 minutes, or a jump above 25% versus the prior print. Tests inject the payload. The default path does not open a socket.
 
-`attest_source` hashes the label plus body so a fixture swap changes the digest.
-`candles_integrity_digest` provides a content hash of an OHLCV series.
-The loader still rejects anything that is not labelled SYNTHETIC.
+`attest_source` hashes the label plus body so a fixture swap changes the digest. `candles_integrity_digest` provides a content hash of an OHLCV series. The loader still rejects anything that is not labelled SYNTHETIC.
 
 ## Threats and controls
 
 | Threat | Control |
 |---|---|
-| Secret committed | gitleaks CI, redaction (expanded patterns), no key loader |
+| Secret committed | gitleaks CI, redaction (expanded patterns including hex and mnemonic proxies), no key loader |
 | Trade key pasted into config | `refuse_trade_secret` |
 | Private key or seed phrase in context | Expanded SECRET_PATTERNS and redact |
 | Strategy injection via fixture | SYNTHETIC label required, source attestation, series digest |
@@ -75,6 +66,7 @@ The loader still rejects anything that is not labelled SYNTHETIC.
 | Live-order mistake | No live client; mode guard; RBAC deny |
 | Personal data in agent context | AGENTS.md ban plus CI tripwire |
 | Privilege creep | No role can place an order |
+| Unencrypted sensitive notes | Optional research key derivation for encryption-at-rest stubs |
 
 ## Incident handling
 
@@ -90,3 +82,4 @@ The loader still rejects anything that is not labelled SYNTHETIC.
 - Logs pass through `redact` before they are stored.
 - Default deployment is research. Promoting a signal to a broker is a separate, human-approved system.
 - Zero-trust style: every signal is re-evaluated by the risk gate; no persistent trust in a prior signal.
+- Encryption-at-rest for audit logs is a research stub only (`derive_research_key`); production requires proper KDFs, salts, and key management.
