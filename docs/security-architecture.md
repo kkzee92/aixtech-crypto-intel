@@ -1,18 +1,19 @@
 # Security architecture
 
-Version 0.3 extends the control plane with expanded redaction, data
-classification, series integrity digests, and ATR-aware risk reduction.
-It is still a research design, not a certified security product and not legal advice.
+Version 0.5 extends the control plane with further expanded redaction patterns
+(including token styles, longer base64-like, phone), improved sanitization,
+adaptive risk elements, and refined documentation. It is still a research design,
+not a certified security product and not legal advice.
 
 ## Trust boundaries
 
 ```mermaid
 flowchart LR
     F["Synthetic fixture or injected public ticker"] --> AT["Source attestation + series integrity digest"]
-    AT --> S["Strategy research rules plus regime overlay + vol scaling"]
+    AT --> S["Strategy research rules plus regime overlay + vol scaling + multi-factor"]
     S --> R["Risk gate: class caps, kill switch, drawdown, ATR reduction"]
     R --> P["Paper fill only"]
-    P --> A["Hash-chained audit log"]
+    P --> A["Hash-chained audit log with sanitization"]
     K["Trade or withdrawal keys"] -.-> X["Refused. Never loaded"]
     RBAC["Researcher, auditor, operator"] --> R
 ```
@@ -41,9 +42,9 @@ There is no trader role. Promoting a signal to a broker is a separate system.
 | Series integrity digest | Integrity | SHA-256 over ordered OHLCV |
 | Read-only market key | Secret, optional | Name must say read, market, or public. Never logged |
 | Trade or withdrawal key | Secret | Refused |
-| Private key / WIF / seed phrase | Secret | Redacted; never stored |
+| Private key / WIF / seed phrase / tokens | Secret | Redacted; never stored |
 | Wallet address | Sensitive identifier | Redacted, banned from fixtures |
-| Email, NRIC, phone | Personal | Tripwire in `scripts/check_pdpa.py` |
+| Email, NRIC, phone | Personal | Tripwire in `scripts/check_pdpa.py` + redaction |
 
 PDPA note: the tripwire is not a data-loss-prevention product. A production
 deployment still needs access control, vendor review, and a human DPO decision.
@@ -64,16 +65,16 @@ The loader still rejects anything that is not labelled SYNTHETIC.
 
 | Threat | Control |
 |---|---|
-| Secret committed | gitleaks CI, redaction (expanded patterns), no key loader |
+| Secret committed | gitleaks CI, redaction (expanded patterns including AWS/Slack/JWT/base64 styles), no key loader |
 | Trade key pasted into config | `refuse_trade_secret` |
-| Private key or seed phrase in context | Expanded SECRET_PATTERNS and redact |
+| Private key or seed phrase or token in context | Expanded SECRET_PATTERNS and redact |
 | Strategy injection via fixture | SYNTHETIC label required, source attestation, series digest |
 | Stale or jumped public ticker | feed status watch or high |
 | Oversized risk on thin or high-vol assets | Per-class cap, confidence floor, class cost, vol scaling, ATR reduction |
 | Runaway loss | Drawdown halt and kill switch |
 | Audit tamper | SHA-256 chain over sequence, action, detail |
 | Live-order mistake | No live client; mode guard; RBAC deny |
-| Personal data in agent context | AGENTS.md ban plus CI tripwire |
+| Personal data in agent context | AGENTS.md ban plus CI tripwire + phone redaction |
 | Privilege creep | No role can place an order |
 
 ## Incident handling
@@ -87,6 +88,6 @@ The loader still rejects anything that is not labelled SYNTHETIC.
 ## Operating rules
 
 - Market-data credentials, if ever added, stay read-only and separate from any future trade credential.
-- Logs pass through `redact` before they are stored.
+- Logs pass through `redact` and sanitization before they are stored.
 - Default deployment is research. Promoting a signal to a broker is a separate, human-approved system.
 - Zero-trust style: every signal is re-evaluated by the risk gate; no persistent trust in a prior signal.
