@@ -10,7 +10,7 @@ published from the connected account `kkzee92` because that connector cannot
 push to `zeekiankok92`.
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![version](https://img.shields.io/badge/version-0.4.0-blue)
+![version](https://img.shields.io/badge/version-0.5.0-blue)
 ![mode](https://img.shields.io/badge/execution-paper%20only-orange)
 ![Licence](https://img.shields.io/badge/licence-MIT-green)
 
@@ -36,7 +36,7 @@ push to `zeekiankok92`.
 
 Full notes: [docs/asset-class-strategies.md](docs/asset-class-strategies.md).
 Security design: [docs/security-architecture.md](docs/security-architecture.md).
-Enhancement log: [docs/v29-enhanced-strategies-and-security.md](docs/v29-enhanced-strategies-and-security.md).
+Enhancement log: [docs/v30-enhanced-strategies-and-security.md](docs/v30-enhanced-strategies-and-security.md).
 
 ## Run
 
