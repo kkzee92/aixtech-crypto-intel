@@ -10,7 +10,7 @@ published from the connected account `kkzee92` because that connector cannot
 push to `zeekiankok92`.
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![version](https://img.shields.io/badge/version-0.4.0-blue)
+![version](https://img.shields.io/badge/version-0.5.0-blue)
 ![mode](https://img.shields.io/badge/execution-paper%20only-orange)
 ![Licence](https://img.shields.io/badge/licence-MIT-green)
 
@@ -18,7 +18,7 @@ push to `zeekiankok92`.
 
 - Classifies markets into eight asset classes and applies a different research rule to each.
 - Labels each series trend, range, or stress, and stands aside in stress.
-- Scores a signal with multi-factor confirmation (including MACD-style momentum), adaptive volume thresholds, and volatility-scaled sizing, then a risk gate that can shrink or refuse it.
+- Scores a signal with multi-factor confirmation (including MACD-style momentum for majors), adaptive volume thresholds, multi-bar consistency, and volatility-scaled sizing, then a risk gate that can shrink or refuse it.
 - Applies a declared round-trip cost by asset class in the paper backtest.
 - Writes a hash-chained audit log, attests fixture sources, redacts secret-like strings (including private-key and seed proxies), and provides series integrity digests.
 - Backtests on **synthetic** candles only and returns equity, win rate, and a simple Sharpe proxy. Network access is injectable and unused by default.
@@ -36,7 +36,7 @@ push to `zeekiankok92`.
 
 Full notes: [docs/asset-class-strategies.md](docs/asset-class-strategies.md).
 Security design: [docs/security-architecture.md](docs/security-architecture.md).
-Enhancement log: [docs/v29-enhanced-strategies-and-security.md](docs/v29-enhanced-strategies-and-security.md).
+Enhancement log: [docs/v30-further-strategy-and-security-enhancements.md](docs/v30-further-strategy-and-security-enhancements.md).
 
 ## Run
 
