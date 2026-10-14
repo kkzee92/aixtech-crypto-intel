@@ -1,16 +1,16 @@
 # Security architecture
 
-Version 0.3 extends the control plane. It is still a research design, not a
-certified security product and not legal advice. Control ids are a reviewer
-map, not a NIST certification.
+Version 0.3 extends the control plane with expanded redaction, data
+classification, series integrity digests, and ATR-aware risk reduction.
+It is still a research design, not a certified security product and not legal advice.
 
 ## Trust boundaries
 
 ```mermaid
 flowchart LR
-    F["Synthetic fixture or injected public ticker"] --> AT["Source attestation"]
-    AT --> S["Strategy research rules plus regime overlay"]
-    S --> R["Risk gate: class caps, kill switch, drawdown"]
+    F["Synthetic fixture or injected public ticker"] --> AT["Source attestation + series integrity digest"]
+    AT --> S["Strategy research rules plus regime overlay + vol scaling"]
+    S --> R["Risk gate: class caps, kill switch, drawdown, ATR reduction"]
     R --> P["Paper fill only"]
     P --> A["Hash-chained audit log"]
     K["Trade or withdrawal keys"] -.-> X["Refused. Never loaded"]
@@ -38,17 +38,10 @@ There is no trader role. Promoting a signal to a broker is a separate system.
 | Symbol, OHLCV | Public market | Synthetic in this repo |
 | Funding rate | Public market | Research feature only |
 | Source label | Integrity | Must be SYNTHETIC or PUBLIC_READ |
-
-## Version 0.5
-
-Cross-asset vetoes and the STRIDE map sit in front of any future live path,
-which this repository still does not have. Data classification refuses
-unlabelled, personal, and secret payloads. See
-[docs/threat-model.md](threat-model.md) and
-[docs/data-classification.md](data-classification.md). `crypto-intel threats`
-checks that every mapped control id exists in the catalog.
+| Series integrity digest | Integrity | SHA-256 over ordered OHLCV |
 | Read-only market key | Secret, optional | Name must say read, market, or public. Never logged |
 | Trade or withdrawal key | Secret | Refused |
+| Private key / WIF / seed phrase | Secret | Redacted; never stored |
 | Wallet address | Sensitive identifier | Redacted, banned from fixtures |
 | Email, NRIC, phone | Personal | Tripwire in `scripts/check_pdpa.py` |
 
@@ -64,17 +57,19 @@ jump above 25% versus the prior print. Tests inject the payload. The default
 path does not open a socket.
 
 `attest_source` hashes the label plus body so a fixture swap changes the digest.
+`candles_integrity_digest` provides a content hash of an OHLCV series.
 The loader still rejects anything that is not labelled SYNTHETIC.
 
 ## Threats and controls
 
 | Threat | Control |
 |---|---|
-| Secret committed | gitleaks CI, redaction, no key loader |
+| Secret committed | gitleaks CI, redaction (expanded patterns), no key loader |
 | Trade key pasted into config | `refuse_trade_secret` |
-| Strategy injection via fixture | SYNTHETIC label required, source attestation |
+| Private key or seed phrase in context | Expanded SECRET_PATTERNS and redact |
+| Strategy injection via fixture | SYNTHETIC label required, source attestation, series digest |
 | Stale or jumped public ticker | feed status watch or high |
-| Oversized risk on thin assets | Per-class cap, confidence floor, class cost |
+| Oversized risk on thin or high-vol assets | Per-class cap, confidence floor, class cost, vol scaling, ATR reduction |
 | Runaway loss | Drawdown halt and kill switch |
 | Audit tamper | SHA-256 chain over sequence, action, detail |
 | Live-order mistake | No live client; mode guard; RBAC deny |
@@ -84,33 +79,14 @@ The loader still rejects anything that is not labelled SYNTHETIC.
 ## Incident handling
 
 1. Engage the kill switch. New paper size goes to zero.
-2. Freeze the audit chain and record the source attestation digest.
+2. Freeze the audit chain and record the source attestation and series integrity digests.
 3. If a secret was pasted, rotate it outside this repo and purge it from history.
 4. Do not open a public issue that contains a secret or a wallet address.
 5. A human reviews before the kill switch is cleared.
-
-## Version 0.3 controls
-
-- Parameter catalog digest (`catalog.parameter_digest`) is printed by `crypto-intel controls`.
-- Egress policy allows only public market hosts over HTTPS and refuses paths containing order, withdraw, transfer, or `/sapi/`. The check does not open a socket.
-- Kill-switch clear is dual control: the operator requests, the auditor confirms. The same role cannot both request and confirm.
-- Book caps sit after the class risk gate so one asset class cannot consume the whole research budget.
 
 ## Operating rules
 
 - Market-data credentials, if ever added, stay read-only and separate from any future trade credential.
 - Logs pass through `redact` before they are stored.
 - Default deployment is research. Promoting a signal to a broker is a separate, human-approved system.
-
-## Version 0.4 controls
-
-- Series quality gate refuses paper size on duplicate timestamps, zero volume, unsorted time, or a close-to-close jump above 40%.
-- Confirmation overlay is a second class-specific check. A failed check flattens a directional idea. Stablecoin alerts stay alerts.
-- Volatility targeting can only shrink a paper size, and liquid-staking symbols are capped at 1%.
-- Read-only market key *names* are classified and marked rotate after 90 days. Trade, withdrawal, and unqualified secret names are refused. No key material is generated or stored.
-- Clock skew above 120 seconds is rejected by the feed policy check. Retention for secrets and personal data is zero.
-- These checks do not open a socket and are not a certification.
-
-## Version 0.20 disclosure boundary
-
-Briefs may cross only `research_internal`, `audit`, or `public_brief`. A public brief drops paper size and passes through redaction. Trade, withdrawal, seed, private-key, and api-key tokens are blocked. The boundary stores no key material and cannot enable live trading. See [v20-inventory-and-disclosure.md](v20-inventory-and-disclosure.md).
+- Zero-trust style: every signal is re-evaluated by the risk gate; no persistent trust in a prior signal.

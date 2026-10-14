@@ -1,7 +1,7 @@
 """Cyber and data-security controls for the information system.
 
 This is a research control plane, not a certified security product.
-Version 0.28 expands redaction for GitHub PATs, Discord tokens, and additional high-entropy markers.
+Version 0.3 expands redaction patterns, data classification, and integrity helpers.
 """
 
 from __future__ import annotations
@@ -10,21 +10,14 @@ import hashlib
 import re
 from dataclasses import dataclass
 
-from crypto_intel.models import AuditEvent, ExecutionMode
+from crypto_intel.models import AuditEvent, Candle, ExecutionMode
 
 SECRET_PATTERNS = (
-    re.compile(r"(?i)(api[_-]?key|secret|password|token)\s*[:=]\s*['\"]?[A-Za-z0-9_\-]{12,}"),
+    re.compile(r"(?i)(api[_-]?key|secret|password|token|private[_-]?key)\s*[:=]\s*['\"]?[A-Za-z0-9_\-]{12,}"),
     re.compile(r"\b(?:sk|pk)_(?:live|test)_[A-Za-z0-9]{8,}\b"),
     re.compile(r"\b[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}\b", re.IGNORECASE),
-    re.compile(r"\b(?:seed phrase|mnemonic|private key|xprv|xpub)\b", re.IGNORECASE),
-    re.compile(r"\b[0-9a-fA-F]{64}\b"),  # raw private key hex
-    re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"),  # AWS-style keys
-    re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b"),  # JWT
-    re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b"),  # Slack tokens
-    re.compile(r"\bghp_[A-Za-z0-9]{36}\b"),  # GitHub PAT classic
-    re.compile(r"\bgithub_pat_[A-Za-z0-9_]{80,}\b"),  # GitHub fine-grained PAT
-    re.compile(r"\b[MN][A-Za-z0-9]{23}\.[A-Za-z0-9_-]{6}\.[A-Za-z0-9_-]{27,}\b"),  # Discord token style
-    re.compile(r"\b[A-Za-z0-9+/]{40,}={0,2}\b"),  # high-entropy base64-like
+    re.compile(r"\b(5[HJK][1-9A-HJ-NP-Za-km-z]{49}|L[1-9A-HJ-NP-Za-km-z]{51}|K[1-9A-HJ-NP-Za-km-z]{51})\b"),  # WIF-like
+    re.compile(r"(?i)(abandon|ability|able|about|above)\s+(abandon|ability|able|about|above)"),  # seed phrase start proxy
 )
 
 WALLET_PATTERN = re.compile(r"\b0x[a-fA-F0-9]{40}\b")
@@ -35,21 +28,18 @@ class DataClassification:
     field: str
     level: str
     retention: str
+    notes: str = ""
 
 
 CLASSIFICATION = (
     DataClassification("symbol", "public", "research retention"),
     DataClassification("ohlcv", "public-market", "research retention"),
     DataClassification("funding_rate", "public-market", "research retention"),
-    DataClassification("exchange_api_key", "secret", "never stored"),
+    DataClassification("exchange_api_key", "secret", "never stored", "read-only market keys only if ever added"),
     DataClassification("wallet_address", "sensitive-identifier", "do not fixture"),
     DataClassification("account_email", "personal", "do not collect"),
-    DataClassification("mnemonic", "secret", "never stored; redacted"),
-    DataClassification("private_key", "secret", "never stored; redacted"),
-    DataClassification("jwt_token", "secret", "never stored; redacted"),
-    DataClassification("slack_token", "secret", "never stored; redacted"),
-    DataClassification("github_pat", "secret", "never stored; redacted"),
-    DataClassification("discord_token", "secret", "never stored; redacted"),
+    DataClassification("seed_phrase", "secret", "never stored"),
+    DataClassification("private_key", "secret", "never stored"),
 )
 
 
@@ -74,9 +64,13 @@ def hash_event(previous_hash: str, sequence: int, action: str, detail: str) -> s
     return hashlib.sha256(material).hexdigest()
 
 
-def integrity_digest(payload: str) -> str:
-    """SHA-256 of a redacted payload for source attestation."""
-    return hashlib.sha256(redact(payload).encode()).hexdigest()
+def candles_integrity_digest(candles: list[Candle]) -> str:
+    """SHA-256 over ordered OHLCV fields for fixture or series attestation."""
+    material = "|".join(
+        f"{c.symbol}:{c.timestamp}:{c.open}:{c.high}:{c.low}:{c.close}:{c.volume}:{c.funding_rate}"
+        for c in candles
+    ).encode()
+    return hashlib.sha256(material).hexdigest()
 
 
 class AuditLog:

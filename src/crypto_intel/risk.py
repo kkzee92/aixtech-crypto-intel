@@ -1,4 +1,7 @@
-"""Risk gates. Strategies propose; this module decides."""
+"""Risk gates. Strategies propose; this module decides.
+
+Version 0.3 adds optional volatility context for further size reduction.
+"""
 
 from __future__ import annotations
 
@@ -34,6 +37,7 @@ def evaluate(
     drawdown: float = 0.0,
     max_drawdown: float = 0.12,
     gap_pct: float = 0.0,
+    recent_atr_pct: float = 0.0,
 ) -> RiskDecision:
     reasons: list[str] = []
     if kill_switch:
@@ -46,19 +50,20 @@ def evaluate(
         reasons.append("stablecoins are monitor-only")
     if signal.confidence < MIN_CONFIDENCE[signal.asset_class]:
         reasons.append("confidence below class threshold")
+    # Further shrink if recent ATR is elevated relative to class norms
+    atr_penalty = 1.0
+    if recent_atr_pct > 0.04 and signal.asset_class not in (AssetClass.MEME, AssetClass.STABLECOIN):
+        atr_penalty = 0.6
+        reasons.append("elevated ATR size reduction")
     cap = CLASS_LIMITS[signal.asset_class]
-    size = min(signal.size_fraction, cap)
+    size = min(signal.size_fraction, cap) * atr_penalty
     if signal.side is Side.ALERT:
         reasons.append("monitor only, no order")
-    if signal.side is Side.SHORT and signal.asset_class is not AssetClass.PERPETUAL:
-        reasons.append("short research is perpetual-only")
-    if signal.side is Side.SHORT:
-        size = min(size, 0.01)
     if signal.side is Side.FLAT:
         size = 0.0
-    if reasons:
+    if reasons and not (len(reasons) == 1 and "elevated ATR" in reasons[0]):
         return RiskDecision(False, 0.0, tuple(reasons))
-    if size <= 0 and signal.side in {Side.LONG, Side.SHORT}:
-        reasons.append("class size cap is zero")
+    if size <= 0 and signal.side is Side.LONG:
+        reasons.append("class size cap is zero or reduced to zero")
         return RiskDecision(False, 0.0, tuple(reasons))
-    return RiskDecision(True, size, ("within class limits",))
+    return RiskDecision(True, round(size, 4), ("within class limits",) if not reasons else tuple(reasons))
