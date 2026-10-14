@@ -1,7 +1,7 @@
 # Security architecture
 
-Version 0.3 extends the control plane with expanded redaction, data
-classification, series integrity digests, and ATR-aware risk reduction.
+Version 0.5 extends the control plane with tighter multi-factor strategy filters,
+expanded redaction, data classification, series integrity digests, and ATR-aware risk reduction.
 It is still a research design, not a certified security product and not legal advice.
 
 ## Trust boundaries
@@ -9,7 +9,7 @@ It is still a research design, not a certified security product and not legal ad
 ```mermaid
 flowchart LR
     F["Synthetic fixture or injected public ticker"] --> AT["Source attestation + series integrity digest"]
-    AT --> S["Strategy research rules plus regime overlay + vol scaling"]
+    AT --> S["Strategy research rules plus regime overlay + vol scaling + multi-factor filters"]
     S --> R["Risk gate: class caps, kill switch, drawdown, ATR reduction"]
     R --> P["Paper fill only"]
     P --> A["Hash-chained audit log"]
@@ -69,12 +69,13 @@ The loader still rejects anything that is not labelled SYNTHETIC.
 | Private key or seed phrase in context | Expanded SECRET_PATTERNS and redact |
 | Strategy injection via fixture | SYNTHETIC label required, source attestation, series digest |
 | Stale or jumped public ticker | feed status watch or high |
-| Oversized risk on thin or high-vol assets | Per-class cap, confidence floor, class cost, vol scaling, ATR reduction |
+| Oversized risk on thin or high-vol assets | Per-class cap, confidence floor, class cost, vol scaling, ATR reduction, multi-factor filters |
 | Runaway loss | Drawdown halt and kill switch |
 | Audit tamper | SHA-256 chain over sequence, action, detail |
 | Live-order mistake | No live client; mode guard; RBAC deny |
 | Personal data in agent context | AGENTS.md ban plus CI tripwire |
 | Privilege creep | No role can place an order |
+| False-positive signals on noise | Adaptive multi-factor and class-specific tighter thresholds |
 
 ## Incident handling
 
@@ -90,3 +91,4 @@ The loader still rejects anything that is not labelled SYNTHETIC.
 - Logs pass through `redact` before they are stored.
 - Default deployment is research. Promoting a signal to a broker is a separate, human-approved system.
 - Zero-trust style: every signal is re-evaluated by the risk gate; no persistent trust in a prior signal.
+- Adaptive filters and tighter class thresholds further reduce noise on research fixtures.
