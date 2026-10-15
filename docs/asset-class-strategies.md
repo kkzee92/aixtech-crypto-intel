@@ -2,9 +2,10 @@
 
 These rules are research heuristics. Each class has an edge hypothesis, an
 entry, an invalidation, a horizon, and a size cap. They are not a promise of
-return. Version 0.5 adds multi-factor confirmation including MACD-style momentum,
-adaptive thresholds based on volatility, tighter filters, and refined volume
-and RSI logic. Size remains volatility-scaled.
+return. Version 0.6 adds Bollinger-style envelope confirmation for majors,
+minor adaptive refinements across classes, and continues multi-factor logic
+from 0.5 (MACD-style momentum, adaptive thresholds based on volatility, tighter
+filters, refined volume and RSI logic). Size remains volatility-scaled.
 
 Regime labels, from `regime.py`:
 
@@ -18,7 +19,7 @@ target (default ~2%), so higher-volatility series take smaller paper risk.
 ## Major
 
 Hypothesis: liquid majors trend often enough that multi-EMA alignment plus MACD-style
-momentum confirmation is usable, unless RSI is stretched (adaptive band) or the book is in stress.
+momentum confirmation and Bollinger-style envelope is usable, unless RSI is stretched (adaptive band) or the book is in stress.
 Mean reversion is allowed only in a range regime with washed-out adaptive RSI.
 Cap 8%. Horizon 8 or 20 bars. Research cost 8 bps round trip. Size is vol-scaled.
 
@@ -72,3 +73,5 @@ This does not model liquidation, funding intervals, or exchange risk.
 - Live order routing, withdrawal, and trade API keys.
 - A broker adapter. That would be a separate human-approved system.
 - Claims about future returns. Scores describe the synthetic fixture.
+
+See also [v30-multi-factor-and-resilience.md](v30-multi-factor-and-resilience.md).
