@@ -2,21 +2,21 @@
 
 Transparent heuristics for paper research. Not forecasts and not a recommendation
 to trade. Each class has an entry, an invalidation, a regime overlay, and
-volatility-aware sizing. Version 0.5 adds MACD-style confirmation, adaptive
-thresholds, and refined multi-factor filters.
+volatility-aware sizing. Version 0.6 adds Bollinger-style envelope confirmation
+and minor adaptive refinements.
 """
 
 from __future__ import annotations
 
-from statistics import fmean
+from statistics import fmean, pstdev
 
 from crypto_intel.models import AssetClass, Candle, Side, Signal
 from crypto_intel.regime import Regime, classify, atr_pct
 
 PLAYBOOK: dict[AssetClass, dict[str, str]] = {
     AssetClass.MAJOR: {
-        "hypothesis": "Liquid majors trend with multi-EMA and MACD-style momentum, except when RSI is stretched or the book is in stress.",
-        "entry": "Fast > mid > slow EMA, positive MACD proxy, adaptive RSI band in trend or range. Washed-out adaptive RSI only in range. Vol-scaled size.",
+        "hypothesis": "Liquid majors trend with multi-EMA, MACD-style momentum, and Bollinger-style envelope confirmation, except when RSI is stretched or the book is in stress.",
+        "entry": "Fast > mid > slow EMA, positive MACD proxy, price near/above mid-band with positive slope, adaptive RSI band in trend or range. Washed-out adaptive RSI only in range. Vol-scaled size.",
         "invalidation": "Stress regime, or RSI stretched beyond adaptive limit.",
         "horizon": "8 bars mean-reversion, 20 bars trend",
     },
@@ -82,6 +82,17 @@ def _macd_proxy(closes: list[float]) -> float:
     if len(closes) < 26:
         return 0.0
     return _ema(closes, 12) - _ema(closes, 26)
+
+
+def _bollinger_proxy(closes: list[float], window: int = 20) -> tuple[float, float]:
+    """Simple Bollinger-style: mid = SMA, upper/lower = mid ± 2*stdev. Returns (mid, upper)."""
+    if len(closes) < window:
+        mid = fmean(closes)
+        return mid, mid
+    window_closes = closes[-window:]
+    mid = fmean(window_closes)
+    std = pstdev(window_closes) if len(window_closes) > 1 else 0.0
+    return mid, mid + 2 * std
 
 
 def _rsi(closes: list[float], period: int = 14) -> float:
@@ -159,10 +170,13 @@ def _major(candles: list[Candle], closes: list[float], regime: Regime, high_vol:
     rsi_upper = 65 if high_vol else 70
     rsi_lower = 28 if high_vol else 30
     macd = _macd_proxy(closes)
+    bb_mid, bb_upper = _bollinger_proxy(closes)
+    price = closes[-1]
+    bb_confirm = price >= bb_mid * 0.995 and (len(closes) < 2 or closes[-1] >= closes[-2])
     if regime is Regime.STRESS:
         return _base(candles, Side.FLAT, 0.45, "major stress: stand aside", 0.0, 1, scale_vol=False)
-    if fast > mid > slow and macd > 0 and 45 <= rsi <= rsi_upper:
-        return _base(candles, Side.LONG, 0.78, "major multi-EMA + MACD confirmation, adaptive RSI not stretched", 0.06, 20)
+    if fast > mid > slow and macd > 0 and bb_confirm and 45 <= rsi <= rsi_upper:
+        return _base(candles, Side.LONG, 0.78, "major multi-EMA + MACD + Bollinger-style envelope confirmation, adaptive RSI not stretched", 0.06, 20)
     if regime is Regime.RANGE and rsi < rsi_lower and closes[-1] > closes[-3]:
         return _base(candles, Side.LONG, 0.65, "major mean-reversion: washed-out adaptive RSI in range", 0.03, 8)
     return _base(candles, Side.FLAT, 0.4, "major: no aligned trend or reversion edge", 0.0, 1, scale_vol=False)
