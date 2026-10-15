@@ -1,8 +1,9 @@
 # Security architecture
 
-Version 0.5 extends the control plane with further expanded redaction patterns
+Version 0.6 extends the control plane with multi-factor adaptive strategy confirmations
+(including Bollinger-style envelopes), further expanded redaction patterns
 (including token styles, longer base64-like, phone), improved sanitization,
-adaptive risk elements, and refined documentation. It is still a research design,
+adaptive risk elements, series integrity, and refined documentation. It is still a research design,
 not a certified security product and not legal advice.
 
 ## Trust boundaries
@@ -10,7 +11,7 @@ not a certified security product and not legal advice.
 ```mermaid
 flowchart LR
     F["Synthetic fixture or injected public ticker"] --> AT["Source attestation + series integrity digest"]
-    AT --> S["Strategy research rules plus regime overlay + vol scaling + multi-factor"]
+    AT --> S["Strategy research rules plus regime overlay + vol scaling + multi-factor + BB envelope"]
     S --> R["Risk gate: class caps, kill switch, drawdown, ATR reduction"]
     R --> P["Paper fill only"]
     P --> A["Hash-chained audit log with sanitization"]
@@ -91,3 +92,6 @@ The loader still rejects anything that is not labelled SYNTHETIC.
 - Logs pass through `redact` and sanitization before they are stored.
 - Default deployment is research. Promoting a signal to a broker is a separate, human-approved system.
 - Zero-trust style: every signal is re-evaluated by the risk gate; no persistent trust in a prior signal.
+- Adaptive multi-factor filters (v0.6) reduce false positives on synthetic fixtures while preserving research transparency.
+
+Latest enhancement notes: [v30-multi-factor-and-resilience.md](v30-multi-factor-and-resilience.md).
