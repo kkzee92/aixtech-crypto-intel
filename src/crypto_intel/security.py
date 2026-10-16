@@ -1,8 +1,8 @@
 """Cyber and data-security controls for the information system.
 
 This is a research control plane, not a certified security product.
-Version 0.8 expands secret patterns (GitHub PATs, PEM headers, additional tokens),
-adds a series anomaly scoring helper, and reinforces sanitization and zero-trust notes.
+Version 0.9 expands secret patterns (Discord tokens, Google API keys, additional cloud styles),
+adds Z-score anomaly scoring, timestamp freshness helper, and reinforces zero-trust key separation notes.
 """
 
 from __future__ import annotations
@@ -10,7 +10,8 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import dataclass
-from statistics import median
+from datetime import datetime, timezone
+from statistics import mean, pstdev, median
 
 from crypto_intel.models import AuditEvent, Candle, ExecutionMode
 
@@ -27,6 +28,9 @@ SECRET_PATTERNS = (
     re.compile(r"\bghp_[A-Za-z0-9]{36}\b"),  # GitHub PAT style
     re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),  # PEM private key header
     re.compile(r"\bsk-[A-Za-z0-9]{20,}\b"),  # OpenAI-style or similar
+    re.compile(r"\b[A-Za-z0-9]{24}\.[A-Za-z0-9_-]{6}\.[A-Za-z0-9_-]{27}\b"),  # Discord token style
+    re.compile(r"\bAIza[0-9A-Za-z\-_]{35}\b"),  # Google API key style
+    re.compile(r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b"),  # UUID-like secrets proxy (cautious)
 )
 
 WALLET_PATTERN = re.compile(r"\b0x[a-fA-F0-9]{40}\b")
@@ -45,13 +49,15 @@ CLASSIFICATION = (
     DataClassification("symbol", "public", "research retention"),
     DataClassification("ohlcv", "public-market", "research retention"),
     DataClassification("funding_rate", "public-market", "research retention"),
-    DataClassification("exchange_api_key", "secret", "never stored", "read-only market keys only if ever added"),
+    DataClassification("exchange_api_key", "secret", "never stored", "read-only market keys only if ever added; separate from any trade key"),
     DataClassification("wallet_address", "sensitive-identifier", "do not fixture"),
     DataClassification("account_email", "personal", "do not collect"),
     DataClassification("seed_phrase", "secret", "never stored"),
     DataClassification("private_key", "secret", "never stored"),
     DataClassification("phone", "personal", "do not collect"),
     DataClassification("github_pat", "secret", "never stored"),
+    DataClassification("discord_token", "secret", "never stored"),
+    DataClassification("google_api_key", "secret", "never stored"),
 )
 
 
@@ -92,10 +98,10 @@ def candles_integrity_digest(candles: list[Candle]) -> str:
 
 
 def anomaly_score(candles: list[Candle]) -> float:
-    """Simple research anomaly score: max single-bar return absolute + volume spike ratio.
+    """Enhanced research anomaly score: max single-bar return + volume spike + Z-score of recent returns.
     Higher values flag potential jumps or thin prints. Not a risk model.
     """
-    if len(candles) < 3:
+    if len(candles) < 5:
         return 0.0
     returns = [abs(candles[i].close / candles[i - 1].close - 1.0) for i in range(1, len(candles))]
     max_ret = max(returns) if returns else 0.0
@@ -103,12 +109,42 @@ def anomaly_score(candles: list[Candle]) -> float:
     med_vol = median(volumes) if volumes else 1.0
     last_vol = candles[-1].volume
     vol_spike = last_vol / max(med_vol, 1.0)
-    return round(max_ret * 10 + min(vol_spike, 5.0) * 0.2, 4)
+    # Z-score on last few returns
+    recent_rets = returns[-4:] if len(returns) >= 4 else returns
+    if len(recent_rets) > 1:
+        mu = mean(recent_rets)
+        sigma = pstdev(recent_rets) or 1.0
+        z = abs((recent_rets[-1] - mu) / sigma)
+    else:
+        z = 0.0
+    return round(max_ret * 10 + min(vol_spike, 5.0) * 0.2 + min(z, 5.0) * 0.15, 4)
+
+
+def timestamp_freshness(candles: list[Candle], max_age_minutes: int = 15) -> bool:
+    """Research helper: check if the latest timestamp is within max_age_minutes of now.
+    Assumes ISO-like timestamps; returns False on parse failure or stale.
+    """
+    if not candles:
+        return False
+    try:
+        # Simplified parse; production would use proper datetime
+        last_ts = candles[-1].timestamp
+        # Expect something like YYYY-MM-DDTHH:MM:SS or similar
+        if "T" in last_ts:
+            dt = datetime.fromisoformat(last_ts.replace("Z", "+00:00"))
+        else:
+            return False
+        now = datetime.now(timezone.utc)
+        age = (now - dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else now - dt).total_seconds() / 60
+        return age <= max_age_minutes
+    except Exception:
+        return False
 
 
 def sanitize_input(text: str, max_len: int = 2000) -> str:
     """Research sanitization: redact, strip control characters, and length-limit.
     Zero-trust: callers re-evaluate independently; no assumed clean state.
+    Key separation: any future market keys must be read-only and distinct from trade credentials.
     """
     cleaned = redact(text)
     cleaned = re.sub(r"[\x00-\x1F\x7F]", "", cleaned)
