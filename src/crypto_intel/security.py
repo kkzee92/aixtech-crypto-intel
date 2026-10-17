@@ -1,7 +1,7 @@
 """Cyber and data-security controls for the information system.
 
 This is a research control plane, not a certified security product.
-Version 0.11 expands secret patterns (Solana base58 proxies, longer hex), adds funding jump notes to anomaly scoring, series consistency helper, and reinforces zero-trust key separation and data resilience.
+Version 0.12 expands secret patterns further (additional base58/WIF proxies, volume outlier in anomaly), adds rolling series digest helper, and reinforces zero-trust re-validation and data resilience notes.
 """
 
 from __future__ import annotations
@@ -34,6 +34,8 @@ SECRET_PATTERNS = (
     re.compile(r"\b[0-9a-fA-F]{128}\b"),  # longer hex private key style
     re.compile(r"\b\d{8,10}:[A-Za-z0-9_-]{35}\b"),  # Telegram bot token style
     re.compile(r"\b[1-9A-HJ-NP-Za-km-z]{87,88}\b"),  # Solana base58 private key proxy (approx length)
+    re.compile(r"\b[1-9A-HJ-NP-Za-km-z]{44,50}\b"),  # shorter base58 proxy for some chains
+    re.compile(r"(?i)wif\s*[:=]\s*['\"]?[5KL][1-9A-HJ-NP-Za-km-z]{50,}\b"),  # explicit WIF label
 )
 
 WALLET_PATTERN = re.compile(r"\b0x[a-fA-F0-9]{40}\b")
@@ -64,6 +66,7 @@ CLASSIFICATION = (
     DataClassification("telegram_token", "secret", "never stored"),
     DataClassification("hex_private_key", "secret", "never stored"),
     DataClassification("solana_base58_key", "secret", "never stored"),
+    DataClassification("wif_key", "secret", "never stored"),
 )
 
 
@@ -103,8 +106,15 @@ def candles_integrity_digest(candles: list[Candle]) -> str:
     return hashlib.sha256(material).hexdigest()
 
 
+def rolling_series_digest(candles: list[Candle], window: int = 20) -> str:
+    """Research rolling digest over last window candles for anomaly detection."""
+    if len(candles) < window:
+        window = len(candles)
+    return candles_integrity_digest(candles[-window:])
+
+
 def anomaly_score(candles: list[Candle]) -> float:
-    """Enhanced research anomaly score: max single-bar return + volume spike + return Z-score + volume Z-score + optional funding jump.
+    """Enhanced research anomaly score: max single-bar return + volume spike + return Z-score + volume Z-score + optional funding jump + volume IQR outlier.
     Higher values flag potential jumps or thin prints. Not a risk model.
     """
     if len(candles) < 5:
@@ -134,7 +144,15 @@ def anomaly_score(candles: list[Candle]) -> float:
     funding_jump = 0.0
     if len(candles) > 1 and abs(candles[-1].funding_rate - candles[-2].funding_rate) > 0.001:
         funding_jump = 0.5
-    return round(max_ret * 10 + min(vol_spike, 5.0) * 0.2 + min(z, 5.0) * 0.15 + min(vz, 5.0) * 0.1 + funding_jump, 4)
+    # Simple IQR outlier on volume
+    iqr_outlier = 0.0
+    if len(volumes) >= 4:
+        sorted_v = sorted(volumes)
+        q1, q3 = sorted_v[1], sorted_v[-2]
+        iqr = q3 - q1
+        if last_vol > q3 + 1.5 * iqr:
+            iqr_outlier = 0.3
+    return round(max_ret * 10 + min(vol_spike, 5.0) * 0.2 + min(z, 5.0) * 0.15 + min(vz, 5.0) * 0.1 + funding_jump + iqr_outlier, 4)
 
 
 def timestamp_freshness(candles: list[Candle], max_age_minutes: int = 15) -> bool:
@@ -172,7 +190,7 @@ def sanitize_input(text: str, max_len: int = 2000) -> str:
     """Research sanitization: redact, strip control characters, and length-limit.
     Zero-trust: callers re-evaluate independently; no assumed clean state.
     Key separation: any future market keys must be read-only and distinct from trade credentials.
-    Recommend encryption at rest for logs in production research deployments.
+    Recommend encryption at rest for logs in production research deployments; prefer local residency.
     """
     cleaned = redact(text)
     cleaned = re.sub(r"[\x00-\x1F\x7F]", "", cleaned)
