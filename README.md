@@ -10,41 +10,43 @@ published from the connected account `kkzee92` because that connector cannot
 push to `zeekiankok92`. The public reference remains under zeekiankok92.
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![version](https://img.shields.io/badge/version-0.11.0-blue)
+![version](https://img.shields.io/badge/version-0.12.0-blue)
 ![mode](https://img.shields.io/badge/execution-paper%20only-orange)
 ![Licence](https://img.shields.io/badge/licence-MIT-green)
 
-## v0.11 enhancements
+## v0.12 enhancements
 
-- Multi-timeframe slope alignment proxy for trend confirmation on Major and Large-cap alt.
-- Expanded secret redaction (Solana-style base58, longer hex keys) and funding jump in anomaly scoring.
-- Data resilience notes (encryption at rest, residency) and reinforced zero-trust re-validation.
-- Documentation and version updated. Still paper-only, research-only.
+- Expanded multi-timeframe slope alignment to DeFi and RWA classes.
+- Robust volume profiles (median + IQR proxy) for thin-print detection.
+- Simple support/resistance proxy for Major and Large-cap alt confirmation.
+- Adaptive confidence based on confirming factors; funding trend consistency for perpetuals.
+- Additional secret redaction patterns and refined anomaly scoring with volume outliers.
+- Reinforced zero-trust and data resilience notes. Still paper-only, research-only.
 
-Full notes: [docs/v35-enhanced-mtf-and-resilience.md](docs/v35-enhanced-mtf-and-resilience.md).
+Full notes: [docs/v36-enhanced-adaptive-and-cyber.md](docs/v36-enhanced-adaptive-and-cyber.md).
 
 ## What it does
 
 - Classifies markets into eight asset classes and applies a different research rule to each.
 - Labels each series trend, range, or stress, and stands aside in stress.
-- Scores a signal with multi-factor confirmation (EMA alignment, MACD-style momentum, adaptive RSI/stochastic, volume, Bollinger-style envelopes, trend strength proxy, volatility-scaled sizing, median volume, multi-window, correlation proxy, divergence, VWAP, MTF slope), then a risk gate that can shrink or refuse it.
+- Scores a signal with multi-factor confirmation (EMA alignment, MACD-style momentum, adaptive RSI/stochastic, volume, Bollinger-style envelopes, trend strength proxy, volatility-scaled sizing, median/IQR volume, multi-window, correlation proxy, divergence, VWAP, MTF slope, support/resistance), then a risk gate that can shrink or refuse it.
 - Applies a declared round-trip cost by asset class in the paper backtest.
-- Writes a hash-chained audit log, attests fixture sources, redacts secret-like strings (expanded patterns including private keys, seeds, tokens, PATs, PEM, Discord, Google, hex, Telegram, Solana), and provides series integrity digests plus enhanced anomaly scoring.
+- Writes a hash-chained audit log, attests fixture sources, redacts secret-like strings (expanded patterns including private keys, seeds, tokens, PATs, PEM, Discord, Google, hex, Telegram, Solana, additional base58/WIF), and provides series integrity digests plus enhanced anomaly scoring.
 - Backtests on **synthetic** candles only. Network access is injectable and unused by default.
 
 | Asset class | Research rule | Risk cap | Cost |
 |---|---|---|---|
-| Major (BTC, ETH) | Multi-EMA + MACD + adaptive RSI/stochastic + BB envelope + trend strength + short slope + divergence/VWAP + MTF alignment outside stress; range-only deep RSI/stochastic reversion; vol-scaled | 8% | 8 bps |
-| Large-cap alt | Breakout with median-based adaptive volume + multi-bar + MACD + strength + stochastic + VWAP + MTF, suppressed in stress; vol-scaled | 4% | 14 bps |
+| Major (BTC, ETH) | Multi-EMA + MACD + adaptive RSI/stochastic + BB envelope + trend strength + short slope + divergence/VWAP + MTF + S/R alignment outside stress; range-only deep RSI/stochastic reversion; vol-scaled | 8% | 8 bps |
+| Large-cap alt | Breakout with robust volume + multi-bar + MACD + strength + stochastic + VWAP + MTF + S/R, suppressed in stress; vol-scaled | 4% | 14 bps |
 | Stablecoin | Adaptive 30-60 bp watch, 60-90 bp depeg alert (with sustained check). No order | 0% | n/a |
-| DeFi | Trend only in a calm, non-stress regime with median volume, momentum, strength, stochastic, divergence; vol-scaled | 2% | 22 bps |
-| Meme | Qualified burst with tighter adaptive extension, volume accel, RSI/stochastic filter, consistency, median floor; vol-scaled | 0.5% | 45 bps |
-| L2 | Relative strength versus a non-stress benchmark with ATR contained, median relative volume, own strength, correlation proxy, multi-window excess; vol-scaled | 3% | 16 bps |
-| RWA | Slow trend + momentum + strength + stochastic; halt on adaptive gap or stress; vol-scaled | 2% | 12 bps |
-| Perpetual | Negative-funding carry if drift (ATR-scaled), ATR, multi-print stability, contained strength and stochastic, funding trend; crowded funding is an alert; vol-scaled | 2% | 10 bps |
+| DeFi | Trend only in a calm, non-stress regime with robust volume, momentum, strength, stochastic, divergence, MTF; vol-scaled | 2% | 22 bps |
+| Meme | Qualified burst with tighter adaptive extension, volume accel, RSI/stochastic filter, consistency, robust median floor; vol-scaled | 0.5% | 45 bps |
+| L2 | Relative strength versus a non-stress benchmark with ATR contained, robust relative volume, own strength, correlation proxy, multi-window excess; vol-scaled | 3% | 16 bps |
+| RWA | Slow trend + momentum + strength + stochastic + MTF; halt on adaptive gap or stress; vol-scaled | 2% | 12 bps |
+| Perpetual | Negative-funding carry if drift (ATR-scaled), ATR, multi-print stability, contained strength and stochastic, funding trend consistency; crowded funding is an alert; vol-scaled | 2% | 10 bps |
 
 Full notes: [docs/asset-class-strategies.md](docs/asset-class-strategies.md).  
-Latest enhancement log: [docs/v35-enhanced-mtf-and-resilience.md](docs/v35-enhanced-mtf-and-resilience.md).  
+Latest enhancement log: [docs/v36-enhanced-adaptive-and-cyber.md](docs/v36-enhanced-adaptive-and-cyber.md).  
 Security design: [docs/security-architecture.md](docs/security-architecture.md).
 
 ## Run
