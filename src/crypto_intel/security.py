@@ -1,8 +1,8 @@
 """Cyber and data-security controls for the information system.
 
 This is a research control plane, not a certified security product.
-Version 0.9 expands secret patterns (Discord tokens, Google API keys, additional cloud styles),
-adds Z-score anomaly scoring, timestamp freshness helper, and reinforces zero-trust key separation notes.
+Version 0.10 expands secret patterns (hex private keys, Telegram tokens),
+adds volume Z-score to anomaly scoring, series consistency helper, and reinforces zero-trust key separation.
 """
 
 from __future__ import annotations
@@ -31,6 +31,8 @@ SECRET_PATTERNS = (
     re.compile(r"\b[A-Za-z0-9]{24}\.[A-Za-z0-9_-]{6}\.[A-Za-z0-9_-]{27}\b"),  # Discord token style
     re.compile(r"\bAIza[0-9A-Za-z\-_]{35}\b"),  # Google API key style
     re.compile(r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b"),  # UUID-like secrets proxy (cautious)
+    re.compile(r"\b[0-9a-fA-F]{64}\b"),  # 64-hex private key style
+    re.compile(r"\b\d{8,10}:[A-Za-z0-9_-]{35}\b"),  # Telegram bot token style
 )
 
 WALLET_PATTERN = re.compile(r"\b0x[a-fA-F0-9]{40}\b")
@@ -58,6 +60,8 @@ CLASSIFICATION = (
     DataClassification("github_pat", "secret", "never stored"),
     DataClassification("discord_token", "secret", "never stored"),
     DataClassification("google_api_key", "secret", "never stored"),
+    DataClassification("telegram_token", "secret", "never stored"),
+    DataClassification("hex_private_key", "secret", "never stored"),
 )
 
 
@@ -98,7 +102,7 @@ def candles_integrity_digest(candles: list[Candle]) -> str:
 
 
 def anomaly_score(candles: list[Candle]) -> float:
-    """Enhanced research anomaly score: max single-bar return + volume spike + Z-score of recent returns.
+    """Enhanced research anomaly score: max single-bar return + volume spike + return Z-score + volume Z-score.
     Higher values flag potential jumps or thin prints. Not a risk model.
     """
     if len(candles) < 5:
@@ -117,7 +121,14 @@ def anomaly_score(candles: list[Candle]) -> float:
         z = abs((recent_rets[-1] - mu) / sigma)
     else:
         z = 0.0
-    return round(max_ret * 10 + min(vol_spike, 5.0) * 0.2 + min(z, 5.0) * 0.15, 4)
+    # Volume Z-score
+    if len(volumes) > 1:
+        vmu = mean(volumes)
+        vsigma = pstdev(volumes) or 1.0
+        vz = abs((last_vol - vmu) / vsigma)
+    else:
+        vz = 0.0
+    return round(max_ret * 10 + min(vol_spike, 5.0) * 0.2 + min(z, 5.0) * 0.15 + min(vz, 5.0) * 0.1, 4)
 
 
 def timestamp_freshness(candles: list[Candle], max_age_minutes: int = 15) -> bool:
@@ -127,9 +138,7 @@ def timestamp_freshness(candles: list[Candle], max_age_minutes: int = 15) -> boo
     if not candles:
         return False
     try:
-        # Simplified parse; production would use proper datetime
         last_ts = candles[-1].timestamp
-        # Expect something like YYYY-MM-DDTHH:MM:SS or similar
         if "T" in last_ts:
             dt = datetime.fromisoformat(last_ts.replace("Z", "+00:00"))
         else:
@@ -139,6 +148,18 @@ def timestamp_freshness(candles: list[Candle], max_age_minutes: int = 15) -> boo
         return age <= max_age_minutes
     except Exception:
         return False
+
+
+def series_consistency_check(candles: list[Candle], max_jump: float = 0.25) -> bool:
+    """Research helper: flag if any consecutive close jump exceeds max_jump.
+    Returns True if consistent (no extreme jumps).
+    """
+    if len(candles) < 2:
+        return True
+    for i in range(1, len(candles)):
+        if candles[i].close / candles[i - 1].close - 1.0 > max_jump:
+            return False
+    return True
 
 
 def sanitize_input(text: str, max_len: int = 2000) -> str:
