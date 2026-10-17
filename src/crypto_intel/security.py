@@ -1,8 +1,7 @@
 """Cyber and data-security controls for the information system.
 
 This is a research control plane, not a certified security product.
-Version 0.10 expands secret patterns (hex private keys, Telegram tokens),
-adds volume Z-score to anomaly scoring, series consistency helper, and reinforces zero-trust key separation.
+Version 0.11 expands secret patterns (Solana base58 proxies, longer hex), adds funding jump notes to anomaly scoring, series consistency helper, and reinforces zero-trust key separation and data resilience.
 """
 
 from __future__ import annotations
@@ -32,7 +31,9 @@ SECRET_PATTERNS = (
     re.compile(r"\bAIza[0-9A-Za-z\-_]{35}\b"),  # Google API key style
     re.compile(r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b"),  # UUID-like secrets proxy (cautious)
     re.compile(r"\b[0-9a-fA-F]{64}\b"),  # 64-hex private key style
+    re.compile(r"\b[0-9a-fA-F]{128}\b"),  # longer hex private key style
     re.compile(r"\b\d{8,10}:[A-Za-z0-9_-]{35}\b"),  # Telegram bot token style
+    re.compile(r"\b[1-9A-HJ-NP-Za-km-z]{87,88}\b"),  # Solana base58 private key proxy (approx length)
 )
 
 WALLET_PATTERN = re.compile(r"\b0x[a-fA-F0-9]{40}\b")
@@ -62,6 +63,7 @@ CLASSIFICATION = (
     DataClassification("google_api_key", "secret", "never stored"),
     DataClassification("telegram_token", "secret", "never stored"),
     DataClassification("hex_private_key", "secret", "never stored"),
+    DataClassification("solana_base58_key", "secret", "never stored"),
 )
 
 
@@ -102,7 +104,7 @@ def candles_integrity_digest(candles: list[Candle]) -> str:
 
 
 def anomaly_score(candles: list[Candle]) -> float:
-    """Enhanced research anomaly score: max single-bar return + volume spike + return Z-score + volume Z-score.
+    """Enhanced research anomaly score: max single-bar return + volume spike + return Z-score + volume Z-score + optional funding jump.
     Higher values flag potential jumps or thin prints. Not a risk model.
     """
     if len(candles) < 5:
@@ -128,7 +130,11 @@ def anomaly_score(candles: list[Candle]) -> float:
         vz = abs((last_vol - vmu) / vsigma)
     else:
         vz = 0.0
-    return round(max_ret * 10 + min(vol_spike, 5.0) * 0.2 + min(z, 5.0) * 0.15 + min(vz, 5.0) * 0.1, 4)
+    # Funding jump proxy if present
+    funding_jump = 0.0
+    if len(candles) > 1 and abs(candles[-1].funding_rate - candles[-2].funding_rate) > 0.001:
+        funding_jump = 0.5
+    return round(max_ret * 10 + min(vol_spike, 5.0) * 0.2 + min(z, 5.0) * 0.15 + min(vz, 5.0) * 0.1 + funding_jump, 4)
 
 
 def timestamp_freshness(candles: list[Candle], max_age_minutes: int = 15) -> bool:
@@ -166,6 +172,7 @@ def sanitize_input(text: str, max_len: int = 2000) -> str:
     """Research sanitization: redact, strip control characters, and length-limit.
     Zero-trust: callers re-evaluate independently; no assumed clean state.
     Key separation: any future market keys must be read-only and distinct from trade credentials.
+    Recommend encryption at rest for logs in production research deployments.
     """
     cleaned = redact(text)
     cleaned = re.sub(r"[\x00-\x1F\x7F]", "", cleaned)
