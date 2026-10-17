@@ -2,9 +2,7 @@
 
 These rules are research heuristics. Each class has an edge hypothesis, an
 entry, an invalidation, a horizon, and a size cap. They are not a promise of
-return. Version 0.8 adds median-based volume robustness, multi-window EMA slope
-confirmation, and multi-print funding stability on top of prior multi-factor
-(EMA, MACD-style, Bollinger-style envelopes, trend strength, adaptive thresholds, vol scaling).
+return. Version 0.11 adds multi-timeframe slope alignment proxies, refined volume robustness, and funding trend checks on top of prior multi-factor (EMA, MACD-style, Bollinger-style envelopes, trend strength, adaptive thresholds, vol scaling, divergence, VWAP).
 Size remains volatility-scaled.
 
 Regime labels, from `regime.py`:
@@ -18,13 +16,13 @@ target (default ~2%), so higher-volatility series take smaller paper risk.
 
 Trend strength proxy: net directional move over absolute move over a window (positive for uptrend).
 
-Volume bases prefer median over mean for robustness to single-bar spikes.
+Volume bases prefer median over mean for robustness to single-bar spikes. MTF proxy checks short-window alignment with longer.
 
 ## Major
 
 Hypothesis: liquid majors trend often enough that multi-EMA alignment plus MACD-style
-momentum confirmation, Bollinger-style envelope, positive trend strength, and short-window slope is usable, unless RSI is stretched (adaptive band) or the book is in stress.
-Mean reversion is allowed only in a range regime with washed-out adaptive RSI.
+momentum confirmation, Bollinger-style envelope, positive trend strength, short-window slope, MTF alignment, and stochastic not extreme is usable, unless RSI is stretched (adaptive band) or the book is in stress.
+Mean reversion is allowed only in a range regime with washed-out adaptive RSI and bullish divergence.
 Cap 8%. Horizon 8 or 20 bars. Research cost 8 bps round trip. Size is vol-scaled.
 
 ## Large-cap alt
@@ -32,7 +30,7 @@ Cap 8%. Horizon 8 or 20 bars. Research cost 8 bps round trip. Size is vol-scaled
 Hypothesis: breakouts without volume are noise, and stress-regime breakouts are
 gap risk. Entry needs a close above the prior five-bar high, volume at least
 adaptive multiple of recent **median**, positive multi-bar momentum, MACD confirmation,
-trend strength, and a non-stress regime. Cap 4%. Cost 14 bps. Size is vol-scaled.
+trend strength, stochastic filter, VWAP, MTF alignment, and a non-stress regime. Cap 4%. Cost 14 bps. Size is vol-scaled.
 
 ## Stablecoin
 
@@ -43,7 +41,7 @@ and depeg alerts, preferring sustained multi-bar elevation. Risk gate forces siz
 
 Hypothesis: trend signals in high realised-volatility or stress regimes are
 mostly gap risk. Stand aside if mean absolute return over 8 bars exceeds adaptive
-limit or the regime is stress. Prefer volume support versus median, positive momentum, and strength.
+limit or the regime is stress. Prefer volume support versus median, positive momentum, strength, and stochastic.
 Cap 2%. Cost 22 bps. Size is vol-scaled.
 
 ## Meme
@@ -56,8 +54,8 @@ Size is vol-scaled.
 ## L2
 
 Hypothesis: L2 tokens are bets on relative strength versus a benchmark. No
-benchmark, or a benchmark in stress, means no trade. Require excess return,
-own ATR contained, relative volume (medians), and own trend strength. Cap 3%. Cost 16 bps. Size is vol-scaled.
+benchmark, or a benchmark in stress, means no trade. Require excess return (multi-window option),
+own ATR contained, relative volume (medians), own trend strength, and correlation proxy. Cap 3%. Cost 16 bps. Size is vol-scaled.
 
 ## RWA
 
@@ -68,7 +66,7 @@ Cap 2%, horizon 24 bars. Cost 12 bps. Size is vol-scaled.
 ## Perpetual
 
 Hypothesis: negative funding with contained spot drift, moderate ATR, multi-print
-funding stability, and contained trend strength is a carry observation. Funding at or above 10 bps is a crowded-funding alert.
+funding stability, funding trend not adverse, and contained trend strength is a carry observation. Funding at or above 10 bps is a crowded-funding alert.
 Drift outside adaptive limit blocks the carry. Cap 2%. Cost 10 bps. Size is vol-scaled.
 This does not model liquidation, funding intervals, or exchange risk.
 
@@ -78,4 +76,4 @@ This does not model liquidation, funding intervals, or exchange risk.
 - A broker adapter. That would be a separate human-approved system.
 - Claims about future returns. Scores describe the synthetic fixture.
 
-See also [v32-enhanced-robustness-and-cyber.md](v32-enhanced-robustness-and-cyber.md).
+See also [v35-enhanced-mtf-and-resilience.md](v35-enhanced-mtf-and-resilience.md).

@@ -1,8 +1,8 @@
 # Security architecture
 
-Version 0.7 extends the control plane with further adaptive multi-factor strategy confirmations
-(including trend strength proxy on top of EMA, MACD, Bollinger-style envelopes), refined redaction,
-improved sanitization, adaptive risk elements, series integrity, and updated documentation. It is still a research design,
+Version 0.11 extends the control plane with multi-timeframe strategy proxies,
+expanded redaction (Solana base58, longer hex), refined anomaly scoring with funding jumps,
+improved sanitization, adaptive risk elements, series integrity, data resilience notes, and updated documentation. It is still a research design,
 not a certified security product and not legal advice.
 
 ## Trust boundaries
@@ -10,7 +10,7 @@ not a certified security product and not legal advice.
 ```mermaid
 flowchart LR
     F["Synthetic fixture or injected public ticker"] --> AT["Source attestation + series integrity digest"]
-    AT --> S["Strategy research rules plus regime overlay + vol scaling + multi-factor + BB + trend strength"]
+    AT --> S["Strategy research rules plus regime overlay + vol scaling + multi-factor + BB + trend strength + MTF"]
     S --> R["Risk gate: class caps, kill switch, drawdown, ATR reduction"]
     R --> P["Paper fill only"]
     P --> A["Hash-chained audit log with sanitization"]
@@ -42,14 +42,14 @@ There is no trader role. Promoting a signal to a broker is a separate system.
 | Series integrity digest | Integrity | SHA-256 over ordered OHLCV |
 | Read-only market key | Secret, optional | Name must say read, market, or public. Never logged |
 | Trade or withdrawal key | Secret | Refused |
-| Private key / WIF / seed phrase / tokens | Secret | Redacted; never stored |
+| Private key / WIF / seed phrase / tokens / Solana base58 / hex | Secret | Redacted; never stored |
 | Wallet address | Sensitive identifier | Redacted, banned from fixtures |
 | Email, NRIC, phone | Personal | Tripwire in `scripts/check_pdpa.py` + redaction |
 
 PDPA note: the tripwire is not a data-loss-prevention product. A production
 deployment still needs access control, vendor review, and a human DPO decision.
 Wallet addresses can be personal data depending on context; this repo does not
-store them.
+store them. Prefer encryption at rest for any research logs (AES-256) and data residency controls.
 
 ## Feed integrity
 
@@ -65,7 +65,7 @@ The loader still rejects anything that is not labelled SYNTHETIC.
 
 | Threat | Control |
 |---|---|
-| Secret committed | gitleaks CI, redaction (expanded patterns including AWS/Slack/JWT/base64 styles), no key loader |
+| Secret committed | gitleaks CI, redaction (expanded patterns including AWS/Slack/JWT/base64/Solana/hex styles), no key loader |
 | Trade key pasted into config | `refuse_trade_secret` |
 | Private key or seed phrase or token in context | Expanded SECRET_PATTERNS and redact |
 | Strategy injection via fixture | SYNTHETIC label required, source attestation, series digest |
@@ -76,6 +76,7 @@ The loader still rejects anything that is not labelled SYNTHETIC.
 | Live-order mistake | No live client; mode guard; RBAC deny |
 | Personal data in agent context | AGENTS.md ban plus CI tripwire + phone redaction |
 | Privilege creep | No role can place an order |
+| Log exposure | Encryption at rest recommended; no secrets in logs |
 
 ## Incident handling
 
@@ -88,9 +89,9 @@ The loader still rejects anything that is not labelled SYNTHETIC.
 ## Operating rules
 
 - Market-data credentials, if ever added, stay read-only and separate from any future trade credential.
-- Logs pass through `redact` and sanitization before they are stored.
+- Logs pass through `redact` and sanitization before they are stored. Prefer encrypted storage.
 - Default deployment is research. Promoting a signal to a broker is a separate, human-approved system.
-- Zero-trust style: every signal is re-evaluated by the risk gate; no persistent trust in a prior signal.
-- Adaptive multi-factor filters including trend strength (v0.7) reduce false positives on synthetic fixtures while preserving research transparency.
+- Zero-trust style: every signal is re-evaluated by the risk gate; no persistent trust in a prior signal. Re-validate digests on each scan.
+- Adaptive multi-factor filters including MTF proxies (v0.11) reduce false positives on synthetic fixtures while preserving research transparency.
 
-Latest enhancement notes: [v31-enhanced-adaptive-and-cyber.md](v31-enhanced-adaptive-and-cyber.md).
+Latest enhancement notes: [v35-enhanced-mtf-and-resilience.md](v35-enhanced-mtf-and-resilience.md).
