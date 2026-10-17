@@ -10,9 +10,15 @@ published from the connected account `kkzee92` because that connector cannot
 push to `zeekiankok92`. The public reference remains under zeekiankok92.
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![version](https://img.shields.io/badge/version-0.12.0-blue)
+![version](https://img.shields.io/badge/version-0.13.0-blue)
 ![mode](https://img.shields.io/badge/execution-paper%20only-orange)
 ![Licence](https://img.shields.io/badge/licence-MIT-green)
+
+## v0.13 enhancements
+
+- Integrated simple On-Balance Volume (OBV) proxy for volume confirmation in Major and Large-cap alt strategies.
+- Added price-volume divergence detection to the anomaly scoring function for better feed integrity.
+- Further reinforced research-only, paper-only controls and zero-trust re-validation.
 
 ## v0.12 enhancements
 
@@ -36,8 +42,8 @@ Full notes: [docs/v36-enhanced-adaptive-and-cyber.md](docs/v36-enhanced-adaptive
 
 | Asset class | Research rule | Risk cap | Cost |
 |---|---|---|---|
-| Major (BTC, ETH) | Multi-EMA + MACD + adaptive RSI/stochastic + BB envelope + trend strength + short slope + divergence/VWAP + MTF + S/R alignment outside stress; range-only deep RSI/stochastic reversion; vol-scaled | 8% | 8 bps |
-| Large-cap alt | Breakout with robust volume + multi-bar + MACD + strength + stochastic + VWAP + MTF + S/R, suppressed in stress; vol-scaled | 4% | 14 bps |
+| Major (BTC, ETH) | Multi-EMA + MACD + adaptive RSI/stochastic + BB envelope + trend strength + short slope + divergence/VWAP + OBV + MTF + S/R alignment outside stress; range-only deep RSI/stochastic reversion; vol-scaled | 8% | 8 bps |
+| Large-cap alt | Breakout with robust volume + multi-bar + MACD + strength + stochastic + VWAP + OBV + MTF + S/R, suppressed in stress; vol-scaled | 4% | 14 bps |
 | Stablecoin | Adaptive 30-60 bp watch, 60-90 bp depeg alert (with sustained check). No order | 0% | n/a |
 | DeFi | Trend only in a calm, non-stress regime with robust volume, momentum, strength, stochastic, divergence, MTF; vol-scaled | 2% | 22 bps |
 | Meme | Qualified burst with tighter adaptive extension, volume accel, RSI/stochastic filter, consistency, robust median floor; vol-scaled | 0.5% | 45 bps |

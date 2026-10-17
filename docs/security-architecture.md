@@ -1,16 +1,13 @@
 # Security architecture
 
-Version 0.11 extends the control plane with multi-timeframe strategy proxies,
-expanded redaction (Solana base58, longer hex), refined anomaly scoring with funding jumps,
-improved sanitization, adaptive risk elements, series integrity, data resilience notes, and updated documentation. It is still a research design,
-not a certified security product and not legal advice.
+Version 0.13 extends the control plane with OBV volume confirmation in strategies, price-volume divergence in anomaly scoring, and reinforced paper-only research design. It is still a research design, not a certified security product and not legal advice.
 
 ## Trust boundaries
 
 ```mermaid
 flowchart LR
     F["Synthetic fixture or injected public ticker"] --> AT["Source attestation + series integrity digest"]
-    AT --> S["Strategy research rules plus regime overlay + vol scaling + multi-factor + BB + trend strength + MTF"]
+    AT --> S["Strategy research rules plus regime overlay + vol scaling + multi-factor + BB + trend strength + MTF + OBV"]
     S --> R["Risk gate: class caps, kill switch, drawdown, ATR reduction"]
     R --> P["Paper fill only"]
     P --> A["Hash-chained audit log with sanitization"]
@@ -18,9 +15,7 @@ flowchart LR
     RBAC["Researcher, auditor, operator"] --> R
 ```
 
-The system has no order router. `assert_paper_only` refuses any mode other than
-`PAPER`. `refuse_trade_secret` rejects names that look like trade, withdraw,
-transfer, or order credentials. Roles cannot enable live trading.
+The system has no order router. `assert_paper_only` refuses any mode other than `PAPER`. `refuse_trade_secret` rejects names that look like trade, withdraw, transfer, or order credentials. Roles cannot enable live trading.
 
 ## Roles
 
@@ -46,30 +41,23 @@ There is no trader role. Promoting a signal to a broker is a separate system.
 | Wallet address | Sensitive identifier | Redacted, banned from fixtures |
 | Email, NRIC, phone | Personal | Tripwire in `scripts/check_pdpa.py` + redaction |
 
-PDPA note: the tripwire is not a data-loss-prevention product. A production
-deployment still needs access control, vendor review, and a human DPO decision.
-Wallet addresses can be personal data depending on context; this repo does not
-store them. Prefer encryption at rest for any research logs (AES-256) and data residency controls.
+PDPA note: the tripwire is not a data-loss-prevention product. A production deployment still needs access control, vendor review, and a human DPO decision. Wallet addresses can be personal data depending on context; this repo does not store them. Prefer encryption at rest for any research logs (AES-256) and data residency controls.
 
 ## Feed integrity
 
-`feed_status` flags a non-positive price, a print older than 15 minutes, or a
-jump above 25% versus the prior print. Tests inject the payload. The default
-path does not open a socket.
+`feed_status` flags a non-positive price, a print older than 15 minutes, or a jump above 25% versus the prior print. Tests inject the payload. The default path does not open a socket.
 
-`attest_source` hashes the label plus body so a fixture swap changes the digest.
-`candles_integrity_digest` provides a content hash of an OHLCV series.
-The loader still rejects anything that is not labelled SYNTHETIC.
+`attest_source` hashes the label plus body so a fixture swap changes the digest. `candles_integrity_digest` provides a content hash of an OHLCV series. The loader still rejects anything that is not labelled SYNTHETIC. Anomaly scoring now includes price-volume divergence proxies.
 
 ## Threats and controls
 
 | Threat | Control |
 |---|---|
-| Secret committed | gitleaks CI, redaction (expanded patterns including AWS/Slack/JWT/base64/Solana/hex styles), no key loader |
+| Secret committed | gitleaks CI, redaction (expanded patterns), no key loader |
 | Trade key pasted into config | `refuse_trade_secret` |
 | Private key or seed phrase or token in context | Expanded SECRET_PATTERNS and redact |
 | Strategy injection via fixture | SYNTHETIC label required, source attestation, series digest |
-| Stale or jumped public ticker | feed status watch or high |
+| Stale or jumped public ticker | feed status watch or high; anomaly scoring with PV divergence |
 | Oversized risk on thin or high-vol assets | Per-class cap, confidence floor, class cost, vol scaling, ATR reduction |
 | Runaway loss | Drawdown halt and kill switch |
 | Audit tamper | SHA-256 chain over sequence, action, detail |
@@ -92,6 +80,4 @@ The loader still rejects anything that is not labelled SYNTHETIC.
 - Logs pass through `redact` and sanitization before they are stored. Prefer encrypted storage.
 - Default deployment is research. Promoting a signal to a broker is a separate, human-approved system.
 - Zero-trust style: every signal is re-evaluated by the risk gate; no persistent trust in a prior signal. Re-validate digests on each scan.
-- Adaptive multi-factor filters including MTF proxies (v0.11) reduce false positives on synthetic fixtures while preserving research transparency.
-
-Latest enhancement notes: [v35-enhanced-mtf-and-resilience.md](v35-enhanced-mtf-and-resilience.md).
+- OBV proxies (v0.13) add volume confirmation without introducing live dependencies.
