@@ -10,9 +10,18 @@ published from the connected account `kkzee92` because that connector cannot
 push to `zeekiankok92`. The public reference remains under zeekiankok92.
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![version](https://img.shields.io/badge/version-0.14.0-blue)
+![version](https://img.shields.io/badge/version-0.15.0-blue)
 ![mode](https://img.shields.io/badge/execution-paper%20only-orange)
 ![Licence](https://img.shields.io/badge/licence-MIT-green)
+
+## v0.15 enhancements
+
+- Added Williams %R (14) as fast momentum confirmation for Major and Large-cap alt strategies.
+- Anomaly scoring refined with extreme oscillator readings and multi-oscillator divergence.
+- Explicit zero-trust re-validation and production encryption / key-management notes.
+- Still strictly paper-only, research-only.
+
+Full notes: [docs/v38-enhanced-williams-and-zerotrust.md](docs/v38-enhanced-williams-and-zerotrust.md).
 
 ## v0.14 enhancements
 
@@ -45,15 +54,15 @@ Full notes: [docs/v36-enhanced-adaptive-and-cyber.md](docs/v36-enhanced-adaptive
 
 - Classifies markets into eight asset classes and applies a different research rule to each.
 - Labels each series trend, range, or stress, and stands aside in stress.
-- Scores a signal with multi-factor confirmation (EMA alignment, MACD-style momentum, adaptive RSI/stochastic, volume, Bollinger-style envelopes, trend strength proxy, volatility-scaled sizing, median/IQR volume, multi-window, correlation proxy, divergence, VWAP, MTF slope, support/resistance, CCI), then a risk gate that can shrink or refuse it.
+- Scores a signal with multi-factor confirmation (EMA alignment, MACD-style momentum, adaptive RSI/stochastic, volume, Bollinger-style envelopes, trend strength proxy, volatility-scaled sizing, median/IQR volume, multi-window, correlation proxy, divergence, VWAP, MTF slope, support/resistance, CCI, Williams %R), then a risk gate that can shrink or refuse it.
 - Applies a declared round-trip cost by asset class in the paper backtest.
 - Writes a hash-chained audit log, attests fixture sources, redacts secret-like strings (expanded patterns including private keys, seeds, tokens, PATs, PEM, Discord, Google, hex, Telegram, Solana, additional base58/WIF), and provides series integrity digests plus enhanced anomaly scoring.
 - Backtests on **synthetic** candles only. Network access is injectable and unused by default.
 
 | Asset class | Research rule | Risk cap | Cost |
 |---|---|---|---|
-| Major (BTC, ETH) | Multi-EMA + MACD + adaptive RSI/stochastic + BB envelope + trend strength + short slope + divergence/VWAP + OBV + MTF + S/R + CCI alignment outside stress; range-only deep RSI/stochastic reversion; vol-scaled | 8% | 8 bps |
-| Large-cap alt | Breakout with robust volume + multi-bar + MACD + strength + stochastic + VWAP + OBV + MTF + S/R + CCI, suppressed in stress; vol-scaled | 4% | 14 bps |
+| Major (BTC, ETH) | Multi-EMA + MACD + adaptive RSI/stochastic + BB envelope + trend strength + short slope + divergence/VWAP + OBV + MTF + S/R + CCI + Williams %R alignment outside stress; range-only deep RSI/stochastic reversion; vol-scaled | 8% | 8 bps |
+| Large-cap alt | Breakout with robust volume + multi-bar + MACD + strength + stochastic + VWAP + OBV + MTF + S/R + CCI + Williams %R, suppressed in stress; vol-scaled | 4% | 14 bps |
 | Stablecoin | Adaptive 30-60 bp watch, 60-90 bp depeg alert (with sustained check). No order | 0% | n/a |
 | DeFi | Trend only in a calm, non-stress regime with robust volume, momentum, strength, stochastic, divergence, MTF; vol-scaled | 2% | 22 bps |
 | Meme | Qualified burst with tighter adaptive extension, volume accel, RSI/stochastic filter, consistency, robust median floor; vol-scaled | 0.5% | 45 bps |
@@ -62,7 +71,7 @@ Full notes: [docs/v36-enhanced-adaptive-and-cyber.md](docs/v36-enhanced-adaptive
 | Perpetual | Negative-funding carry if drift (ATR-scaled), ATR, multi-print stability, contained strength and stochastic, funding trend consistency; crowded funding is an alert; vol-scaled | 2% | 10 bps |
 
 Full notes: [docs/asset-class-strategies.md](docs/asset-class-strategies.md).  
-Latest enhancement log: [docs/v37-enhanced-cci-and-integrity.md](docs/v37-enhanced-cci-and-integrity.md).  
+Latest enhancement log: [docs/v38-enhanced-williams-and-zerotrust.md](docs/v38-enhanced-williams-and-zerotrust.md).  
 Security design: [docs/security-architecture.md](docs/security-architecture.md).
 
 ## Run
