@@ -1,13 +1,13 @@
 # Security architecture
 
-Version 0.16 extends the control plane with an ADX-style directional movement proxy in strategies for Major, Large-cap alt, DeFi, and RWA, refined anomaly scoring with directional inconsistency, and explicit data residency / cross-border transfer notes. It is still a research design, not a certified security product and not legal advice.
+Version 0.17 extends the control plane with a Supertrend-style ATR band proxy in strategies for Major, Large-cap alt, DeFi, and RWA, expanded secret redaction for additional token and JWT-like formats, and strengthened zero-trust / residency notes. It is still a research design, not a certified security product and not legal advice.
 
 ## Trust boundaries
 
 ```mermaid
 flowchart LR
     F["Synthetic fixture or injected public ticker"] --> AT["Source attestation + series integrity digest"]
-    AT --> S["Strategy research rules plus regime overlay + vol scaling + multi-factor + BB + trend strength + ADX-style + MTF + OBV + CCI + Williams %R"]
+    AT --> S["Strategy research rules plus regime overlay + vol scaling + multi-factor + BB + trend strength + ADX-style + Supertrend-style + MTF + OBV + CCI + Williams %R"]
     S --> R["Risk gate: class caps, kill switch, drawdown, ATR reduction"]
     R --> P["Paper fill only"]
     P --> A["Hash-chained audit log with sanitization"]
@@ -37,7 +37,7 @@ There is no trader role. Promoting a signal to a broker is a separate system.
 | Series integrity digest | Integrity | SHA-256 over ordered OHLCV |
 | Read-only market key | Secret, optional | Name must say read, market, or public. Never logged |
 | Trade or withdrawal key | Secret | Refused |
-| Private key / WIF / seed phrase / tokens / Solana base58 / hex | Secret | Redacted; never stored |
+| Private key / WIF / seed phrase / tokens / Solana base58 / hex / JWT-like | Secret | Redacted; never stored |
 | Wallet address | Sensitive identifier | Redacted, banned from fixtures |
 | Email, NRIC, phone | Personal | Tripwire in `scripts/check_pdpa.py` + redaction |
 
@@ -47,17 +47,17 @@ PDPA note: the tripwire is not a data-loss-prevention product. A production depl
 
 `feed_status` flags a non-positive price, a print older than 15 minutes, or a jump above 25% versus the prior print. Tests inject the payload. The default path does not open a socket.
 
-`attest_source` hashes the label plus body so a fixture swap changes the digest. `candles_integrity_digest` provides a content hash of an OHLCV series. The loader still rejects anything that is not labelled SYNTHETIC. Anomaly scoring now includes price-volume divergence proxies, oscillator extremes, and directional inconsistency (ADX-style vs. slope).
+`attest_source` hashes the label plus body so a fixture swap changes the digest. `candles_integrity_digest` provides a content hash of an OHLCV series. The loader still rejects anything that is not labelled SYNTHETIC. Anomaly scoring now includes price-volume divergence proxies, oscillator extremes, directional inconsistency (ADX-style vs. slope), and Supertrend band consistency.
 
 ## Threats and controls
 
 | Threat | Control |
 |---|---|
-| Secret committed | gitleaks CI, redaction (expanded patterns), no key loader |
+| Secret committed | gitleaks CI, redaction (expanded patterns including JWT-like), no key loader |
 | Trade key pasted into config | `refuse_trade_secret` |
-| Private key or seed phrase or token in context | Expanded SECRET_PATTERNS and redact |
+| Private key or seed phrase or token or JWT-like in context | Expanded SECRET_PATTERNS and redact |
 | Strategy injection via fixture | SYNTHETIC label required, source attestation, series digest |
-| Stale or jumped public ticker | feed status watch or high; anomaly scoring with PV divergence and directional checks |
+| Stale or jumped public ticker | feed status watch or high; anomaly scoring with PV divergence, directional, and band checks |
 | Oversized risk on thin or high-vol assets | Per-class cap, confidence floor, class cost, vol scaling, ATR reduction |
 | Runaway loss | Drawdown halt and kill switch |
 | Audit tamper | SHA-256 chain over sequence, action, detail |
@@ -80,6 +80,6 @@ PDPA note: the tripwire is not a data-loss-prevention product. A production depl
 - Market-data credentials, if ever added, stay read-only and separate from any future trade credential.
 - Logs pass through `redact` and sanitization before they are stored. Prefer encrypted storage.
 - Default deployment is research. Promoting a signal to a broker is a separate, human-approved system.
-- Zero-trust style: every signal is re-evaluated by the risk gate; no persistent trust in a prior signal. Re-validate digests and ADX consistency on each scan.
+- Zero-trust style: every signal is re-evaluated by the risk gate; no persistent trust in a prior signal. Re-validate digests, ADX, and Supertrend consistency on each scan.
 - Data residency: prefer declared region (e.g., Singapore) for fixtures and logs; cross-border requires explicit attestation.
-- ADX-style proxies (v0.16) add trend strength confirmation without introducing live dependencies.
+- Supertrend-style proxies (v0.17) add ATR-band trend confirmation without introducing live dependencies.
