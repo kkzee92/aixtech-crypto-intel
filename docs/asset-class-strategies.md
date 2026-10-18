@@ -2,7 +2,7 @@
 
 These rules are research heuristics. Each class has an edge hypothesis, an
 entry, an invalidation, a horizon, and a size cap. They are not a promise of
-return. Version 0.11 adds multi-timeframe slope alignment proxies, refined volume robustness, and funding trend checks on top of prior multi-factor (EMA, MACD-style, Bollinger-style envelopes, trend strength, adaptive thresholds, vol scaling, divergence, VWAP).
+return. Version 0.16 adds an ADX-style directional movement proxy for trend strength confirmation on Major, Large-cap alt, DeFi, and RWA, on top of prior multi-factor (EMA, MACD-style, Bollinger-style envelopes, trend strength, adaptive thresholds, vol scaling, divergence, VWAP, CCI, Williams %R, MTF).
 Size remains volatility-scaled.
 
 Regime labels, from `regime.py`:
@@ -14,14 +14,14 @@ Regime labels, from `regime.py`:
 Volatility scaling: proposed size is reduced when recent 8-bar ATR exceeds a
 target (default ~2%), so higher-volatility series take smaller paper risk.
 
-Trend strength proxy: net directional move over absolute move over a window (positive for uptrend).
+Trend strength proxy: net directional move over absolute move over a window (positive for uptrend). ADX-style proxy measures directional consistency over a 14-bar window.
 
 Volume bases prefer median over mean for robustness to single-bar spikes. MTF proxy checks short-window alignment with longer.
 
 ## Major
 
 Hypothesis: liquid majors trend often enough that multi-EMA alignment plus MACD-style
-momentum confirmation, Bollinger-style envelope, positive trend strength, short-window slope, MTF alignment, and stochastic not extreme is usable, unless RSI is stretched (adaptive band) or the book is in stress.
+momentum confirmation, Bollinger-style envelope, positive trend strength, ADX-style directional movement, short-window slope, MTF alignment, and stochastic/Williams %R not extreme is usable, unless RSI is stretched (adaptive band) or the book is in stress.
 Mean reversion is allowed only in a range regime with washed-out adaptive RSI and bullish divergence.
 Cap 8%. Horizon 8 or 20 bars. Research cost 8 bps round trip. Size is vol-scaled.
 
@@ -30,7 +30,7 @@ Cap 8%. Horizon 8 or 20 bars. Research cost 8 bps round trip. Size is vol-scaled
 Hypothesis: breakouts without volume are noise, and stress-regime breakouts are
 gap risk. Entry needs a close above the prior five-bar high, volume at least
 adaptive multiple of recent **median**, positive multi-bar momentum, MACD confirmation,
-trend strength, stochastic filter, VWAP, MTF alignment, and a non-stress regime. Cap 4%. Cost 14 bps. Size is vol-scaled.
+trend strength, ADX-style proxy, stochastic/Williams %R filter, VWAP, MTF alignment, and a non-stress regime. Cap 4%. Cost 14 bps. Size is vol-scaled.
 
 ## Stablecoin
 
@@ -41,7 +41,7 @@ and depeg alerts, preferring sustained multi-bar elevation. Risk gate forces siz
 
 Hypothesis: trend signals in high realised-volatility or stress regimes are
 mostly gap risk. Stand aside if mean absolute return over 8 bars exceeds adaptive
-limit or the regime is stress. Prefer volume support versus median, positive momentum, strength, and stochastic.
+limit or the regime is stress. Prefer volume support versus median, positive momentum, strength, ADX-style, and stochastic.
 Cap 2%. Cost 22 bps. Size is vol-scaled.
 
 ## Meme
@@ -60,7 +60,7 @@ own ATR contained, relative volume (medians), own trend strength, and correlatio
 ## RWA
 
 Hypothesis: tokenised real-world assets should be slow. An open-to-prior-close
-gap above adaptive limit, or a stress regime, halts the idea. Add momentum and strength confirmation.
+gap above adaptive limit, or a stress regime, halts the idea. Add momentum, strength, and ADX-style confirmation.
 Cap 2%, horizon 24 bars. Cost 12 bps. Size is vol-scaled.
 
 ## Perpetual
@@ -76,4 +76,4 @@ This does not model liquidation, funding intervals, or exchange risk.
 - A broker adapter. That would be a separate human-approved system.
 - Claims about future returns. Scores describe the synthetic fixture.
 
-See also [v35-enhanced-mtf-and-resilience.md](v35-enhanced-mtf-and-resilience.md).
+See also [v39-enhanced-adx-and-residency.md](v39-enhanced-adx-and-residency.md).

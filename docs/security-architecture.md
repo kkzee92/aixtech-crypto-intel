@@ -1,13 +1,13 @@
 # Security architecture
 
-Version 0.13 extends the control plane with OBV volume confirmation in strategies, price-volume divergence in anomaly scoring, and reinforced paper-only research design. It is still a research design, not a certified security product and not legal advice.
+Version 0.16 extends the control plane with an ADX-style directional movement proxy in strategies for Major, Large-cap alt, DeFi, and RWA, refined anomaly scoring with directional inconsistency, and explicit data residency / cross-border transfer notes. It is still a research design, not a certified security product and not legal advice.
 
 ## Trust boundaries
 
 ```mermaid
 flowchart LR
     F["Synthetic fixture or injected public ticker"] --> AT["Source attestation + series integrity digest"]
-    AT --> S["Strategy research rules plus regime overlay + vol scaling + multi-factor + BB + trend strength + MTF + OBV"]
+    AT --> S["Strategy research rules plus regime overlay + vol scaling + multi-factor + BB + trend strength + ADX-style + MTF + OBV + CCI + Williams %R"]
     S --> R["Risk gate: class caps, kill switch, drawdown, ATR reduction"]
     R --> P["Paper fill only"]
     P --> A["Hash-chained audit log with sanitization"]
@@ -41,13 +41,13 @@ There is no trader role. Promoting a signal to a broker is a separate system.
 | Wallet address | Sensitive identifier | Redacted, banned from fixtures |
 | Email, NRIC, phone | Personal | Tripwire in `scripts/check_pdpa.py` + redaction |
 
-PDPA note: the tripwire is not a data-loss-prevention product. A production deployment still needs access control, vendor review, and a human DPO decision. Wallet addresses can be personal data depending on context; this repo does not store them. Prefer encryption at rest for any research logs (AES-256) and data residency controls.
+PDPA note: the tripwire is not a data-loss-prevention product. A production deployment still needs access control, vendor review, and a human DPO decision. Wallet addresses can be personal data depending on context; this repo does not store them. Prefer encryption at rest for any research logs (AES-256) and data residency controls (Singapore or declared region preferred; cross-border transfer requires attestation).
 
 ## Feed integrity
 
 `feed_status` flags a non-positive price, a print older than 15 minutes, or a jump above 25% versus the prior print. Tests inject the payload. The default path does not open a socket.
 
-`attest_source` hashes the label plus body so a fixture swap changes the digest. `candles_integrity_digest` provides a content hash of an OHLCV series. The loader still rejects anything that is not labelled SYNTHETIC. Anomaly scoring now includes price-volume divergence proxies.
+`attest_source` hashes the label plus body so a fixture swap changes the digest. `candles_integrity_digest` provides a content hash of an OHLCV series. The loader still rejects anything that is not labelled SYNTHETIC. Anomaly scoring now includes price-volume divergence proxies, oscillator extremes, and directional inconsistency (ADX-style vs. slope).
 
 ## Threats and controls
 
@@ -57,7 +57,7 @@ PDPA note: the tripwire is not a data-loss-prevention product. A production depl
 | Trade key pasted into config | `refuse_trade_secret` |
 | Private key or seed phrase or token in context | Expanded SECRET_PATTERNS and redact |
 | Strategy injection via fixture | SYNTHETIC label required, source attestation, series digest |
-| Stale or jumped public ticker | feed status watch or high; anomaly scoring with PV divergence |
+| Stale or jumped public ticker | feed status watch or high; anomaly scoring with PV divergence and directional checks |
 | Oversized risk on thin or high-vol assets | Per-class cap, confidence floor, class cost, vol scaling, ATR reduction |
 | Runaway loss | Drawdown halt and kill switch |
 | Audit tamper | SHA-256 chain over sequence, action, detail |
@@ -65,6 +65,7 @@ PDPA note: the tripwire is not a data-loss-prevention product. A production depl
 | Personal data in agent context | AGENTS.md ban plus CI tripwire + phone redaction |
 | Privilege creep | No role can place an order |
 | Log exposure | Encryption at rest recommended; no secrets in logs |
+| Cross-border data transfer | Residency preference and attestation notes |
 
 ## Incident handling
 
@@ -79,5 +80,6 @@ PDPA note: the tripwire is not a data-loss-prevention product. A production depl
 - Market-data credentials, if ever added, stay read-only and separate from any future trade credential.
 - Logs pass through `redact` and sanitization before they are stored. Prefer encrypted storage.
 - Default deployment is research. Promoting a signal to a broker is a separate, human-approved system.
-- Zero-trust style: every signal is re-evaluated by the risk gate; no persistent trust in a prior signal. Re-validate digests on each scan.
-- OBV proxies (v0.13) add volume confirmation without introducing live dependencies.
+- Zero-trust style: every signal is re-evaluated by the risk gate; no persistent trust in a prior signal. Re-validate digests and ADX consistency on each scan.
+- Data residency: prefer declared region (e.g., Singapore) for fixtures and logs; cross-border requires explicit attestation.
+- ADX-style proxies (v0.16) add trend strength confirmation without introducing live dependencies.
