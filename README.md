@@ -4,7 +4,7 @@ Research harness for automated cryptocurrency **information** and paper strategy
 evaluation. It does not place live orders, does not store exchange secrets, and
 is not financial advice.
 
-**Latest enhanced version**: [aixtech-crypto-intel-v017](https://github.com/kkzee92/aixtech-crypto-intel-v017) with Supertrend proxies, volume delta, multi-asset correlation regimes, advanced zero-trust and data lineage.
+**Latest enhanced version**: [aixtech-crypto-intel-v018](https://github.com/kkzee92/aixtech-crypto-intel-v018) with Parabolic SAR proxies, volume profile refinements, multi-asset correlation regimes, advanced Merkle-style lineage, isolation anomaly, and expanded zero-trust/data residency.
 
 Reference style: [zeekiankok92/aixtech-agent-harness-demo](https://github.com/zeekiankok92/aixtech-agent-harness-demo)
 (CI gates, PDPA tripwire, AI disclosure, human review). This repository is
