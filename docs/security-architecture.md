@@ -1,21 +1,24 @@
 # Security architecture
 
-Version 0.16 extends the control plane with an ADX-style directional movement proxy in strategies for Major, Large-cap alt, DeFi, and RWA, refined anomaly scoring with directional inconsistency, and explicit data residency / cross-border transfer notes. It is still a research design, not a certified security product and not legal advice.
+Version 0.3 extends the control plane. It is still a research design, not a
+certified security product and not legal advice.
 
 ## Trust boundaries
 
 ```mermaid
 flowchart LR
-    F["Synthetic fixture or injected public ticker"] --> AT["Source attestation + series integrity digest"]
-    AT --> S["Strategy research rules plus regime overlay + vol scaling + multi-factor + BB + trend strength + ADX-style + MTF + OBV + CCI + Williams %R"]
-    S --> R["Risk gate: class caps, kill switch, drawdown, ATR reduction"]
+    F["Synthetic fixture or injected public ticker"] --> AT["Source attestation"]
+    AT --> S["Strategy research rules plus regime overlay"]
+    S --> R["Risk gate: class caps, kill switch, drawdown, volatility scale"]
     R --> P["Paper fill only"]
-    P --> A["Hash-chained audit log with sanitization"]
+    P --> A["Hash-chained audit log with timestamps"]
     K["Trade or withdrawal keys"] -.-> X["Refused. Never loaded"]
     RBAC["Researcher, auditor, operator"] --> R
 ```
 
-The system has no order router. `assert_paper_only` refuses any mode other than `PAPER`. `refuse_trade_secret` rejects names that look like trade, withdraw, transfer, or order credentials. Roles cannot enable live trading.
+The system has no order router. `assert_paper_only` refuses any mode other than
+`PAPER`. `refuse_trade_secret` rejects names that look like trade, withdraw,
+transfer, or order credentials. Roles cannot enable live trading.
 
 ## Roles
 
@@ -34,43 +37,46 @@ There is no trader role. Promoting a signal to a broker is a separate system.
 | Symbol, OHLCV | Public market | Synthetic in this repo |
 | Funding rate | Public market | Research feature only |
 | Source label | Integrity | Must be SYNTHETIC or PUBLIC_READ |
-| Series integrity digest | Integrity | SHA-256 over ordered OHLCV |
 | Read-only market key | Secret, optional | Name must say read, market, or public. Never logged |
 | Trade or withdrawal key | Secret | Refused |
-| Private key / WIF / seed phrase / tokens / Solana base58 / hex | Secret | Redacted; never stored |
+| Private key / mnemonic | Secret | Refused, redacted |
 | Wallet address | Sensitive identifier | Redacted, banned from fixtures |
-| Email, NRIC, phone | Personal | Tripwire in `scripts/check_pdpa.py` + redaction |
+| Email, NRIC, phone | Personal | Tripwire in `scripts/check_pdpa.py` |
 
-PDPA note: the tripwire is not a data-loss-prevention product. A production deployment still needs access control, vendor review, and a human DPO decision. Wallet addresses can be personal data depending on context; this repo does not store them. Prefer encryption at rest for any research logs (AES-256) and data residency controls (Singapore or declared region preferred; cross-border transfer requires attestation).
+PDPA note: the tripwire is not a data-loss-prevention product. A production
+deployment still needs access control, vendor review, and a human DPO decision.
+Wallet addresses can be personal data depending on context; this repo does not
+store them.
 
 ## Feed integrity
 
-`feed_status` flags a non-positive price, a print older than 15 minutes, or a jump above 25% versus the prior print. Tests inject the payload. The default path does not open a socket.
+`feed_status` flags a non-positive price, a print older than 15 minutes, or a
+jump above 25% versus the prior print. Tests inject the payload. The default
+path does not open a socket.
 
-`attest_source` hashes the label plus body so a fixture swap changes the digest. `candles_integrity_digest` provides a content hash of an OHLCV series. The loader still rejects anything that is not labelled SYNTHETIC. Anomaly scoring now includes price-volume divergence proxies, oscillator extremes, and directional inconsistency (ADX-style vs. slope).
+`attest_source` hashes the label plus body so a fixture swap changes the digest.
+The loader still rejects anything that is not labelled SYNTHETIC.
+`integrity_digest` provides a SHA-256 helper for research payloads.
 
 ## Threats and controls
 
 | Threat | Control |
 |---|---|
-| Secret committed | gitleaks CI, redaction (expanded patterns), no key loader |
+| Secret committed | gitleaks CI, expanded redaction patterns, no key loader |
 | Trade key pasted into config | `refuse_trade_secret` |
-| Private key or seed phrase or token in context | Expanded SECRET_PATTERNS and redact |
-| Strategy injection via fixture | SYNTHETIC label required, source attestation, series digest |
-| Stale or jumped public ticker | feed status watch or high; anomaly scoring with PV divergence and directional checks |
-| Oversized risk on thin or high-vol assets | Per-class cap, confidence floor, class cost, vol scaling, ATR reduction |
+| Strategy injection via fixture | SYNTHETIC label required, source attestation |
+| Stale or jumped public ticker | feed status watch or high |
+| Oversized risk on thin assets | Per-class cap, confidence floor, class cost, volatility scaling |
 | Runaway loss | Drawdown halt and kill switch |
-| Audit tamper | SHA-256 chain over sequence, action, detail |
+| Audit tamper | SHA-256 chain over sequence, action, timestamped detail |
 | Live-order mistake | No live client; mode guard; RBAC deny |
-| Personal data in agent context | AGENTS.md ban plus CI tripwire + phone redaction |
+| Personal data in agent context | AGENTS.md ban plus CI tripwire |
 | Privilege creep | No role can place an order |
-| Log exposure | Encryption at rest recommended; no secrets in logs |
-| Cross-border data transfer | Residency preference and attestation notes |
 
 ## Incident handling
 
 1. Engage the kill switch. New paper size goes to zero.
-2. Freeze the audit chain and record the source attestation and series integrity digests.
+2. Freeze the audit chain and record the source attestation digest.
 3. If a secret was pasted, rotate it outside this repo and purge it from history.
 4. Do not open a public issue that contains a secret or a wallet address.
 5. A human reviews before the kill switch is cleared.
@@ -78,8 +84,5 @@ PDPA note: the tripwire is not a data-loss-prevention product. A production depl
 ## Operating rules
 
 - Market-data credentials, if ever added, stay read-only and separate from any future trade credential.
-- Logs pass through `redact` and sanitization before they are stored. Prefer encrypted storage.
+- Logs pass through `redact` before they are stored.
 - Default deployment is research. Promoting a signal to a broker is a separate, human-approved system.
-- Zero-trust style: every signal is re-evaluated by the risk gate; no persistent trust in a prior signal. Re-validate digests and ADX consistency on each scan.
-- Data residency: prefer declared region (e.g., Singapore) for fixtures and logs; cross-border requires explicit attestation.
-- ADX-style proxies (v0.16) add trend strength confirmation without introducing live dependencies.
