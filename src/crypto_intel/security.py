@@ -1,9 +1,9 @@
 """Cyber and data-security controls for the information system.
 
 This is a research control plane, not a certified security product.
-Version 0.41 expands secret patterns for Solana-style and additional private-key
-formats, adds optional sealed (digest-only) lineage in the audit chain, and
-strengthens zero-trust attestation notes.
+Version 0.42 expands secret patterns for JWT-like tokens and additional cloud keys,
+adds a consecutive-action counter in the audit stamp for basic anomaly visibility,
+and strengthens zero-trust notes.
 """
 
 from __future__ import annotations
@@ -24,6 +24,8 @@ SECRET_PATTERNS = (
     re.compile(r"\b[5KL][1-9A-HJ-NP-Za-km-z]{50,51}\b"),  # WIF-like
     re.compile(r"\b[1-9A-HJ-NP-Za-km-z]{87,88}\b"),  # Solana-style base58 private key approx
     re.compile(r"\b(?:abandon|ability|able|about|above|absent|absorb|abstract|absurd|abuse)\b(?:\s+\w+){11,23}", re.IGNORECASE),  # BIP39 start sample
+    re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b"),  # JWT-like
+    re.compile(r"\b(?:ya29\.|1//)[A-Za-z0-9_-]{20,}\b"),  # Google-style tokens approx
 )
 
 WALLET_PATTERN = re.compile(r"\b0x[a-fA-F0-9]{40}\b")
@@ -47,6 +49,7 @@ CLASSIFICATION = (
     DataClassification("seed_phrase", "secret", "never stored"),
     DataClassification("session_token", "secret", "never stored"),
     DataClassification("hardware_seed", "secret", "never stored"),
+    DataClassification("jwt_token", "secret", "never stored"),
 )
 
 
@@ -82,12 +85,19 @@ class AuditLog:
     def __init__(self) -> None:
         self.events: list[AuditEvent] = []
         self._previous = "GENESIS"
+        self._last_action = ""
+        self._consecutive = 0
 
     def append(self, action: str, detail: str, lineage: str = "synthetic-fixture", sealed: bool = False) -> AuditEvent:
         safe_detail = redact(detail)
         if sealed:
             safe_detail = f"sealed:{integrity_digest(safe_detail)}"
-        stamped = f"{safe_detail} | ts={datetime.now(timezone.utc).isoformat(timespec='seconds')} | lineage={lineage}"
+        if action == self._last_action:
+            self._consecutive += 1
+        else:
+            self._consecutive = 1
+            self._last_action = action
+        stamped = f"{safe_detail} | ts={datetime.now(timezone.utc).isoformat(timespec='seconds')} | lineage={lineage} | consec={self._consecutive}"
         sequence = len(self.events) + 1
         digest = hash_event(self._previous, sequence, action, stamped)
         event = AuditEvent(sequence, action, stamped, self._previous, digest)
