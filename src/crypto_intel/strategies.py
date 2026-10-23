@@ -2,8 +2,8 @@
 
 Transparent heuristics for paper research. Not forecasts and not a recommendation
 to trade. Each class has an entry, an invalidation, and a regime overlay.
-Version 0.41 adds volatility-adaptive confidence/size scaling and an ADX-style
-trend-strength proxy for majors and large-cap alts.
+Version 0.42 adds a simple MACD-style histogram proxy and multi-timeframe
+consistency check for majors and large-cap alts.
 """
 
 from __future__ import annotations
@@ -15,14 +15,14 @@ from crypto_intel.regime import Regime, atr_pct, classify
 
 PLAYBOOK: dict[AssetClass, dict[str, str]] = {
     AssetClass.MAJOR: {
-        "hypothesis": "Liquid majors trend with multi-factor and trend-strength confirmation, except under stress or stretched RSI.",
-        "entry": "Fast EMA above slow EMA, RSI 45-70, volume >=0.9x, BB positive, ADX-style strength >1.2, adaptive vol scale.",
-        "invalidation": "Stress regime, RSI >70, thin volume, weak trend strength, or multi-factor mismatch.",
+        "hypothesis": "Liquid majors trend with multi-factor, MACD, and multi-TF confirmation, except under stress or stretched RSI.",
+        "entry": "Fast EMA above slow EMA, RSI 45-70, volume >=0.9x, BB positive, ADX-style strength >1.2, MACD hist >0, longer-window aligned, adaptive vol scale.",
+        "invalidation": "Stress regime, RSI >70, thin volume, weak strength, negative MACD, or multi-TF mismatch.",
         "horizon": "8 bars mean-reversion, 20 bars trend",
     },
     AssetClass.LARGE_CAP_ALT: {
-        "hypothesis": "Breakouts require volume, BB, and trend-strength confirmation; stress suppressed.",
-        "entry": "Close above prior five-bar high, volume >=1.2x, BB >0.5, non-stress, strength proxy.",
+        "hypothesis": "Breakouts require volume, BB, strength, and MACD confirmation; stress suppressed.",
+        "entry": "Close above prior five-bar high, volume >=1.2x, BB >0.5, non-stress, strength proxy, MACD hist >0.",
         "invalidation": "Stress or missing confirmation.",
         "horizon": "12 bars",
     },
@@ -122,6 +122,24 @@ def _adx_proxy(candles: list[Candle]) -> float:
     return max(up_avg, down_avg) / (up_avg + down_avg + 1e-9) * 2  # scale around 1.0
 
 
+def _macd_hist(closes: list[float]) -> float:
+    """Simple MACD histogram proxy: 12-EMA minus 26-EMA."""
+    if len(closes) < 26:
+        return 0.0
+    fast = _ema(closes, 12)
+    slow = _ema(closes, 26)
+    return fast - slow
+
+
+def _multi_tf_aligned(closes: list[float]) -> bool:
+    """Longer-window (20-bar) direction alignment proxy."""
+    if len(closes) < 20:
+        return True
+    short = closes[-1] / closes[-8] - 1.0
+    long = closes[-1] / closes[-20] - 1.0
+    return (short > 0 and long > 0) or (short < 0 and long < 0)
+
+
 def _adaptive_factor(candles: list[Candle]) -> float:
     """Scale confidence/size down when current ATR exceeds recent baseline."""
     if len(candles) < 16:
@@ -131,7 +149,7 @@ def _adaptive_factor(candles: list[Candle]) -> float:
     if baseline == 0:
         return 1.0
     ratio = current / baseline
-    return max(0.6, min(1.1, 1.2 - ratio * 0.3))
+    return max(0.5, min(1.05, 1.15 - ratio * 0.35))
 
 
 def _base(candles: list[Candle], side: Side, confidence: float, reason: str, size: float, bars: int) -> Signal:
@@ -139,6 +157,9 @@ def _base(candles: list[Candle], side: Side, confidence: float, reason: str, siz
     regime = classify(candles)
     vol = atr_pct(candles)
     adapt = _adaptive_factor(candles)
+    closes = [c.close for c in candles]
+    macd = _macd_hist(closes)
+    mtf = _multi_tf_aligned(closes)
     adj_conf = round(max(0.0, min(confidence * adapt, 1.0)), 4)
     adj_size = round(size * adapt, 4)
     return Signal(
@@ -146,7 +167,7 @@ def _base(candles: list[Candle], side: Side, confidence: float, reason: str, siz
         asset_class=last.asset_class,
         side=side,
         confidence=adj_conf,
-        reason=f"{reason}; regime={regime.value}; atr={vol:.3f}; bb={_bb_position([c.close for c in candles]):.2f}; adapt={adapt:.2f}",
+        reason=f"{reason}; regime={regime.value}; atr={vol:.3f}; bb={_bb_position(closes):.2f}; macd={macd:.4f}; mtf={mtf}; adapt={adapt:.2f}",
         stop_distance_pct=round(max(vol * 1.5, 0.01), 4),
         size_fraction=adj_size,
         horizon_bars=bars,
@@ -182,11 +203,13 @@ def _major(candles: list[Candle], closes: list[float], regime: Regime) -> Signal
     rel_vol = _rel_volume(candles)
     bb = _bb_position(closes)
     strength = _adx_proxy(candles)
+    macd = _macd_hist(closes)
+    mtf = _multi_tf_aligned(closes)
     if regime is Regime.STRESS:
         return _base(candles, Side.FLAT, 0.45, "major stress: stand aside", 0.0, 1)
-    if fast > slow and 45 <= rsi <= 70 and rel_vol >= 0.9 and bb > 0.0 and strength > 1.15:
-        conf = 0.74 + min(0.06, rel_vol * 0.02)
-        return _base(candles, Side.LONG, conf, "major multi-factor trend with strength", 0.06, 20)
+    if fast > slow and 45 <= rsi <= 70 and rel_vol >= 0.9 and bb > 0.0 and strength > 1.15 and macd > 0 and mtf:
+        conf = 0.76 + min(0.05, rel_vol * 0.02)
+        return _base(candles, Side.LONG, conf, "major multi-factor trend with MACD and multi-TF", 0.06, 20)
     if regime is Regime.RANGE and rsi < 30 and closes[-1] > closes[-3] and bb < -1.0:
         return _base(candles, Side.LONG, 0.65, "major mean-reversion: washed-out RSI + below BB in range", 0.03, 8)
     return _base(candles, Side.FLAT, 0.4, "major: no multi-factor edge", 0.0, 1)
@@ -200,8 +223,9 @@ def _breakout(candles: list[Candle], closes: list[float], size: float, bars: int
     volume_base = fmean(c.volume for c in candles[-6:-1])
     bb = _bb_position(closes)
     strength = _adx_proxy(candles)
-    if closes[-1] > max(window) and volume_now > volume_base * 1.2 and bb > 0.5 and strength > 1.1:
-        return _base(candles, Side.LONG, 0.73, "breakout with volume, BB, and strength", size, bars)
+    macd = _macd_hist(closes)
+    if closes[-1] > max(window) and volume_now > volume_base * 1.2 and bb > 0.5 and strength > 1.1 and macd > 0:
+        return _base(candles, Side.LONG, 0.74, "breakout with volume, BB, strength, and MACD", size, bars)
     return _base(candles, Side.FLAT, 0.35, "no multi-factor breakout", 0.0, 1)
 
 
