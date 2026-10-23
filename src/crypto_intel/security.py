@@ -1,1 +1,105 @@
-"""Cyber and data-security controls for the information system.\n\nThis is a research control plane, not a certified security product.\nVersion 0.40 expands secret patterns for seed phrases and WIF-like keys,\nadds simulated data lineage in audit, and strengthens zero-trust attestation.\n"""\n\nfrom __future__ import annotations\n\nimport hashlib\nimport re\nfrom dataclasses import dataclass\nfrom datetime import datetime, timezone\n\nfrom crypto_intel.models import AuditEvent, ExecutionMode\n\nSECRET_PATTERNS = (\n    re.compile(r\"(?i)(api[_-]?key|secret|password|token|private[_-]?key|mnemonic|seed[_-]?phrase)\\s*[:=]\\s*['\\\"]?[A-Za-z0-9_\\-]{12,}\"),\n    re.compile(r\"\\b(?:sk|pk)_(?:live|test)_[A-Za-z0-9]{8,}\\b\"),\n    re.compile(r\"\\b[A-Z0-9._%+\\-]+@[A-Z0-9.\\-]+\\.[A-Z]{2,}\\b\", re.IGNORECASE),\n    re.compile(r\"\\b[0-9a-fA-F]{64}\\b\"),  # raw hex private key\n    re.compile(r\"\\b(?:AKIA|ASIA)[A-Z0-9]{16}\\b\"),  # AWS\n    re.compile(r\"\\b[5KL][1-9A-HJ-NP-Za-km-z]{50,51}\\b\"),  # WIF-like\n    re.compile(r\"\\b(?:abandon|ability|able|about|above|absent|absorb|abstract|absurd|abuse)\\b(?:\\s+\\w+){11,23}\", re.IGNORECASE),  # BIP39 start sample\n)\n\nWALLET_PATTERN = re.compile(r\"\\b0x[a-fA-F0-9]{40}\\b\")\n\n\n@dataclass(frozen=True)\nclass DataClassification:\n    field: str\n    level: str\n    retention: str\n\n\nCLASSIFICATION = (\n    DataClassification(\"symbol\", \"public\", \"research retention\"),\n    DataClassification(\"ohlcv\", \"public-market\", \"research retention\"),\n    DataClassification(\"exchange_api_key\", \"secret\", \"never stored\"),\n    DataClassification(\"wallet_address\", \"sensitive-identifier\", \"do not fixture\"),\n    DataClassification(\"account_email\", \"personal\", \"do not collect\"),\n    DataClassification(\"private_key\", \"secret\", \"never stored, never logged\"),\n    DataClassification(\"funding_rate\", \"public-market\", \"research retention\"),\n    DataClassification(\"seed_phrase\", \"secret\", \"never stored\"),\n)\n\n\ndef redact(text: str) -> str:\n    cleaned = text\n    for pattern in SECRET_PATTERNS:\n        cleaned = pattern.sub(\"[REDACTED]\", cleaned)\n    return WALLET_PATTERN.sub(\"[WALLET]\", cleaned)\n\n\ndef contains_secret(text: str) -> bool:\n    return any(pattern.search(text) for pattern in SECRET_PATTERNS) or bool(WALLET_PATTERN.search(text))\n\n\ndef assert_paper_only(mode: ExecutionMode) -> None:\n    if mode is not ExecutionMode.PAPER:\n        raise PermissionError(\"live execution is disabled; this system is paper-only\")\n\n\ndef hash_event(previous_hash: str, sequence: int, action: str, detail: str) -> str:\n    material = f\"{previous_hash}|{sequence}|{action}|{detail}\".encode()\n    return hashlib.sha256(material).hexdigest()\n\n\ndef integrity_digest(payload: str) -> str:\n    \"\"\"SHA-256 of a research payload for source attestation. Zero-trust input check.\"\"\"\n    return hashlib.sha256(payload.encode()).hexdigest()\n\n\nclass AuditLog:\n    \"\"\"Append-only hash chain with simulated lineage. Tampering changes the next digest.\"\"\"\n\n    def __init__(self) -> None:\n        self.events: list[AuditEvent] = []\n        self._previous = \"GENESIS\"\n\n    def append(self, action: str, detail: str, lineage: str = \"synthetic-fixture\") -> AuditEvent:\n        safe_detail = redact(detail)\n        stamped = f\"{safe_detail} | ts={datetime.now(timezone.utc).isoformat(timespec='seconds')} | lineage={lineage}\"\n        sequence = len(self.events) + 1\n        digest = hash_event(self._previous, sequence, action, stamped)\n        event = AuditEvent(sequence, action, stamped, self._previous, digest)\n        self.events.append(event)\n        self._previous = digest\n        return event\n\n    def verify(self) -> bool:\n        previous = \"GENESIS\"\n        for event in self.events:\n            expected = hash_event(previous, event.sequence, event.action, event.detail)\n            if event.previous_hash != previous or event.digest != expected:\n                return False\n            previous = event.digest\n        return True\n
+"""Cyber and data-security controls for the information system.
+
+This is a research control plane, not a certified security product.
+Version 0.41 expands secret patterns for Solana-style and additional private-key
+formats, adds optional sealed (digest-only) lineage in the audit chain, and
+strengthens zero-trust attestation notes.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import re
+from dataclasses import dataclass
+from datetime import datetime, timezone
+
+from crypto_intel.models import AuditEvent, ExecutionMode
+
+SECRET_PATTERNS = (
+    re.compile(r"(?i)(api[_-]?key|secret|password|token|private[_-]?key|mnemonic|seed[_-]?phrase)\s*[:=]\s*['\"]?[A-Za-z0-9_\-]{12,}"),
+    re.compile(r"\b(?:sk|pk)_(?:live|test)_[A-Za-z0-9]{8,}\b"),
+    re.compile(r"\b[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}\b", re.IGNORECASE),
+    re.compile(r"\b[0-9a-fA-F]{64}\b"),  # raw hex private key
+    re.compile(r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b"),  # AWS
+    re.compile(r"\b[5KL][1-9A-HJ-NP-Za-km-z]{50,51}\b"),  # WIF-like
+    re.compile(r"\b[1-9A-HJ-NP-Za-km-z]{87,88}\b"),  # Solana-style base58 private key approx
+    re.compile(r"\b(?:abandon|ability|able|about|above|absent|absorb|abstract|absurd|abuse)\b(?:\s+\w+){11,23}", re.IGNORECASE),  # BIP39 start sample
+)
+
+WALLET_PATTERN = re.compile(r"\b0x[a-fA-F0-9]{40}\b")
+
+
+@dataclass(frozen=True)
+class DataClassification:
+    field: str
+    level: str
+    retention: str
+
+
+CLASSIFICATION = (
+    DataClassification("symbol", "public", "research retention"),
+    DataClassification("ohlcv", "public-market", "research retention"),
+    DataClassification("exchange_api_key", "secret", "never stored"),
+    DataClassification("wallet_address", "sensitive-identifier", "do not fixture"),
+    DataClassification("account_email", "personal", "do not collect"),
+    DataClassification("private_key", "secret", "never stored, never logged"),
+    DataClassification("funding_rate", "public-market", "research retention"),
+    DataClassification("seed_phrase", "secret", "never stored"),
+    DataClassification("session_token", "secret", "never stored"),
+    DataClassification("hardware_seed", "secret", "never stored"),
+)
+
+
+def redact(text: str) -> str:
+    cleaned = text
+    for pattern in SECRET_PATTERNS:
+        cleaned = pattern.sub("[REDACTED]", cleaned)
+    return WALLET_PATTERN.sub("[WALLET]", cleaned)
+
+
+def contains_secret(text: str) -> bool:
+    return any(pattern.search(text) for pattern in SECRET_PATTERNS) or bool(WALLET_PATTERN.search(text))
+
+
+def assert_paper_only(mode: ExecutionMode) -> None:
+    if mode is not ExecutionMode.PAPER:
+        raise PermissionError("live execution is disabled; this system is paper-only")
+
+
+def hash_event(previous_hash: str, sequence: int, action: str, detail: str) -> str:
+    material = f"{previous_hash}|{sequence}|{action}|{detail}".encode()
+    return hashlib.sha256(material).hexdigest()
+
+
+def integrity_digest(payload: str) -> str:
+    """SHA-256 of a research payload for source attestation. Zero-trust input check."""
+    return hashlib.sha256(payload.encode()).hexdigest()
+
+
+class AuditLog:
+    """Append-only hash chain with simulated lineage. Tampering changes the next digest."""
+
+    def __init__(self) -> None:
+        self.events: list[AuditEvent] = []
+        self._previous = "GENESIS"
+
+    def append(self, action: str, detail: str, lineage: str = "synthetic-fixture", sealed: bool = False) -> AuditEvent:
+        safe_detail = redact(detail)
+        if sealed:
+            safe_detail = f"sealed:{integrity_digest(safe_detail)}"
+        stamped = f"{safe_detail} | ts={datetime.now(timezone.utc).isoformat(timespec='seconds')} | lineage={lineage}"
+        sequence = len(self.events) + 1
+        digest = hash_event(self._previous, sequence, action, stamped)
+        event = AuditEvent(sequence, action, stamped, self._previous, digest)
+        self.events.append(event)
+        self._previous = digest
+        return event
+
+    def verify(self) -> bool:
+        previous = "GENESIS"
+        for event in self.events:
+            expected = hash_event(previous, event.sequence, event.action, event.detail)
+            if event.previous_hash != previous or event.digest != expected:
+                return False
+            previous = event.digest
+        return True

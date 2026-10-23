@@ -1,1 +1,272 @@
-"""Asset-class strategy research rules.\n\nTransparent heuristics for paper research. Not forecasts and not a recommendation\nto trade. Each class has an entry, an invalidation, and a regime overlay.\nVersion 0.40 adds multi-factor volume-weighted momentum and Bollinger-style\nrange confirmation for mean-reversion.\n"""\n\nfrom __future__ import annotations\n\nfrom statistics import fmean, pstdev\n\nfrom crypto_intel.models import AssetClass, Candle, Side, Signal\nfrom crypto_intel.regime import Regime, atr_pct, classify\n\nPLAYBOOK: dict[AssetClass, dict[str, str]] = {\n    AssetClass.MAJOR: {\n        \"hypothesis\": \"Liquid majors trend, except when RSI is stretched or the book is in stress. Multi-factor confirmation reduces noise.\",\n        \"entry\": \"Fast EMA above slow EMA with RSI 45-70, volume >=0.9x, and price above recent SMA in trend. Washed-out RSI + below lower band only in range.\",\n        \"invalidation\": \"Stress regime, RSI above 70, thin volume, or multi-factor mismatch.\",\n        \"horizon\": \"8 bars mean-reversion, 20 bars trend\",\n    },\n    AssetClass.LARGE_CAP_ALT: {\n        \"hypothesis\": \"Breakouts without volume or multi-factor alignment are noise.\",\n        \"entry\": \"Close above prior five-bar high, volume >=1.2x, non-stress, price above SMA.\",\n        \"invalidation\": \"Stress or missing volume/momentum confirmation.\",\n        \"horizon\": \"12 bars\",\n    },\n    AssetClass.STABLECOIN: {\n        \"hypothesis\": \"The useful signal is a peg break, not direction.\",\n        \"entry\": \"Deviation of 50 bps or more raises an alert. No order.\",\n        \"invalidation\": \"Not applicable. Size stays zero.\",\n        \"horizon\": \"1 bar monitor\",\n    },\n    AssetClass.DEFI: {\n        \"hypothesis\": \"Trend only in a calm realised-vol regime with multi-factor support.\",\n        \"entry\": \"Close above 8-bar EMA, realised vol <=6%, non-stress, volume ok.\",\n        \"invalidation\": \"Stress or high vol.\",\n        \"horizon\": \"10 bars\",\n    },\n    AssetClass.MEME: {\n        \"hypothesis\": \"Most bursts are untradeable. Qualified bursts get hard stops.\",\n        \"entry\": \"15% four-bar burst, rising volume, not extended 40%.\",\n        \"invalidation\": \"Thin liquidity or chase.\",\n        \"horizon\": \"3 bars\",\n    },\n    AssetClass.L2: {\n        \"hypothesis\": \"L2 tokens are relative-strength bets versus a benchmark.\",\n        \"entry\": \"Six-bar excess >3% vs non-stress benchmark.\",\n        \"invalidation\": \"Missing or stressed benchmark.\",\n        \"horizon\": \"12 bars\",\n    },\n    AssetClass.RWA: {\n        \"hypothesis\": \"Tokenised RWAs should be slow. Gaps halt.\",\n        \"entry\": \"Close above EMA and prior, gap <8%, non-stress.\",\n        \"invalidation\": \"Gap or stress.\",\n        \"horizon\": \"24 bars\",\n    },\n    AssetClass.PERPETUAL: {\n        \"hypothesis\": \"Negative funding with contained drift is carry observation.\",\n        \"entry\": \"Funding <= -5 bps, |drift| <4%.\",\n        \"invalidation\": \"Crowded funding or excess drift.\",\n        \"horizon\": \"8 bars\",\n    },\n}\n\n\ndef _returns(closes: list[float]) -> list[float]:\n    return [closes[i] / closes[i - 1] - 1.0 for i in range(1, len(closes))]\n\n\ndef _ema(values: list[float], span: int) -> float:\n    alpha = 2.0 / (span + 1)\n    value = values[0]\n    for point in values[1:]:\n        value = alpha * point + (1 - alpha) * value\n    return value\n\n\ndef _rsi(closes: list[float], period: int = 14) -> float:\n    changes = _returns(closes[-(period + 1) :])\n    gains = [max(change, 0.0) for change in changes]\n    losses = [abs(min(change, 0.0)) for change in changes]\n    average_loss = fmean(losses) if losses else 0.0\n    if average_loss == 0:\n        return 100.0\n    rs = fmean(gains) / average_loss\n    return 100.0 - (100.0 / (1.0 + rs))\n\n\ndef _rel_volume(candles: list[Candle]) -> float:\n    if len(candles) < 6:\n        return 1.0\n    recent = fmean(c.volume for c in candles[-5:-1])\n    return candles[-1].volume / recent if recent else 1.0\n\n\ndef _sma(values: list[float], n: int = 8) -> float:\n    return fmean(values[-n:]) if len(values) >= n else fmean(values)\n\n\ndef _bb_position(closes: list[float]) -> float:\n    \"\"\"Simple Bollinger-style position: (price - sma) / std. Positive above mean.\"\"\"\n    if len(closes) < 8:\n        return 0.0\n    window = closes[-8:]\n    mean = fmean(window)\n    std = pstdev(window) or 0.001\n    return (closes[-1] - mean) / std\n\n\ndef _base(candles: list[Candle], side: Side, confidence: float, reason: str, size: float, bars: int) -> Signal:\n    last = candles[-1]\n    regime = classify(candles)\n    vol = atr_pct(candles)\n    return Signal(\n        symbol=last.symbol,\n        asset_class=last.asset_class,\n        side=side,\n        confidence=round(max(0.0, min(confidence, 1.0)), 4),\n        reason=f\"{reason}; regime={regime.value}; atr={vol:.3f}; bb={_bb_position([c.close for c in candles]):.2f}\",\n        stop_distance_pct=round(max(vol * 1.5, 0.01), 4),\n        size_fraction=size,\n        horizon_bars=bars,\n    )\n\n\ndef signal_for(candles: list[Candle], benchmark: list[Candle] | None = None) -> Signal:\n    if len(candles) < 8:\n        raise ValueError(\"need at least 8 candles\")\n    asset_class = candles[-1].asset_class\n    closes = [c.close for c in candles]\n    regime = classify(candles)\n    if asset_class is AssetClass.MAJOR:\n        return _major(candles, closes, regime)\n    if asset_class is AssetClass.LARGE_CAP_ALT:\n        return _breakout(candles, closes, size=0.04, bars=12, regime=regime)\n    if asset_class is AssetClass.STABLECOIN:\n        return _stable(candles)\n    if asset_class is AssetClass.DEFI:\n        return _defi(candles, closes, regime)\n    if asset_class is AssetClass.MEME:\n        return _meme(candles, closes)\n    if asset_class is AssetClass.L2:\n        return _l2(candles, closes, benchmark)\n    if asset_class is AssetClass.RWA:\n        return _rwa(candles, closes, regime)\n    return _perpetual(candles, closes)\n\n\ndef _major(candles: list[Candle], closes: list[float], regime: Regime) -> Signal:\n    fast, slow = _ema(closes, 5), _ema(closes, 13)\n    rsi = _rsi(closes)\n    rel_vol = _rel_volume(candles)\n    bb = _bb_position(closes)\n    if regime is Regime.STRESS:\n        return _base(candles, Side.FLAT, 0.45, \"major stress: stand aside\", 0.0, 1)\n    if fast > slow and 45 <= rsi <= 70 and rel_vol >= 0.9 and bb > 0.0:\n        conf = 0.74 + min(0.06, rel_vol * 0.02)\n        return _base(candles, Side.LONG, conf, \"major multi-factor trend: EMA, RSI, volume, BB alignment\", 0.06, 20)\n    if regime is Regime.RANGE and rsi < 30 and closes[-1] > closes[-3] and bb < -1.0:\n        return _base(candles, Side.LONG, 0.65, \"major mean-reversion: washed-out RSI + below BB in range\", 0.03, 8)\n    return _base(candles, Side.FLAT, 0.4, \"major: no multi-factor edge\", 0.0, 1)\n\n\ndef _breakout(candles: list[Candle], closes: list[float], size: float, bars: int, regime: Regime) -> Signal:\n    if regime is Regime.STRESS:\n        return _base(candles, Side.FLAT, 0.4, \"breakout suppressed in stress\", 0.0, 1)\n    window = closes[-6:-1]\n    volume_now = candles[-1].volume\n    volume_base = fmean(c.volume for c in candles[-6:-1])\n    bb = _bb_position(closes)\n    if closes[-1] > max(window) and volume_now > volume_base * 1.2 and bb > 0.5:\n        return _base(candles, Side.LONG, 0.73, \"breakout with volume and BB confirmation\", size, bars)\n    return _base(candles, Side.FLAT, 0.35, \"no multi-factor breakout\", 0.0, 1)\n\n\ndef _stable(candles: list[Candle]) -> Signal:\n    deviation = abs(candles[-1].close - 1.0)\n    if deviation >= 0.005:\n        return _base(candles, Side.ALERT, 0.92, f\"stablecoin depeg monitor: deviation {deviation:.4f}\", 0.0, 1)\n    if deviation >= 0.002:\n        return _base(candles, Side.ALERT, 0.7, f\"stablecoin watch band: deviation {deviation:.4f}\", 0.0, 1)\n    return _base(candles, Side.FLAT, 0.8, \"stablecoin inside peg band\", 0.0, 1)\n\n\ndef _defi(candles: list[Candle], closes: list[float], regime: Regime) -> Signal:\n    realised = fmean(abs(v) for v in _returns(closes[-8:]))\n    if regime is Regime.STRESS or realised > 0.06:\n        return _base(candles, Side.FLAT, 0.48, \"defi volatility regime: stand aside\", 0.0, 1)\n    if closes[-1] > _ema(closes, 8) and _rel_volume(candles) >= 0.8:\n        return _base(candles, Side.LONG, 0.70, \"defi trend in calm regime with volume\", 0.02, 10)\n    return _base(candles, Side.FLAT, 0.4, \"defi: no calm multi-factor trend\", 0.0, 1)\n\n\ndef _meme(candles: list[Candle], closes: list[float]) -> Signal:\n    liquidity = fmean(c.volume for c in candles[-5:])\n    burst = closes[-1] / closes[-4] - 1.0\n    extension = closes[-1] / closes[-8] - 1.0\n    if liquidity < 1000:\n        return _base(candles, Side.FLAT, 0.2, \"meme liquidity proxy too thin\", 0.0, 1)\n    if extension > 0.40:\n        return _base(candles, Side.FLAT, 0.35, \"meme chase filter: 8-bar extension too large\", 0.0, 1)\n    if burst > 0.15 and candles[-1].volume > candles[-2].volume:\n        return _base(candles, Side.LONG, 0.78, \"meme momentum burst; hard time stop applies\", 0.005, 3)\n    return _base(candles, Side.FLAT, 0.3, \"meme: no qualified burst\", 0.0, 1)\n\n\ndef _l2(candles: list[Candle], closes: list[float], benchmark: list[Candle] | None) -> Signal:\n    if not benchmark or len(benchmark) < 8:\n        return _base(candles, Side.FLAT, 0.3, \"l2 requires a benchmark series\", 0.0, 1)\n    if classify(benchmark) is Regime.STRESS:\n        return _base(candles, Side.FLAT, 0.42, \"l2 benchmark in stress\", 0.0, 1)\n    own = closes[-1] / closes[-6] - 1.0\n    bench_closes = [c.close for c in benchmark]\n    bench = bench_closes[-1] / bench_closes[-6] - 1.0\n    if own - bench > 0.03:\n        return _base(candles, Side.LONG, 0.7, \"l2 relative strength versus benchmark\", 0.03, 12)\n    return _base(candles, Side.FLAT, 0.4, \"l2 not leading benchmark\", 0.0, 1)\n\n\ndef _rwa(candles: list[Candle], closes: list[float], regime: Regime) -> Signal:\n    gap = candles[-1].open / candles[-2].close - 1.0\n    if abs(gap) > 0.08 or regime is Regime.STRESS:\n        return _base(candles, Side.FLAT, 0.5, \"rwa gap or stress halt\", 0.0, 1)\n    if closes[-1] > _ema(closes, 8) and closes[-1] > closes[-5]:\n        return _base(candles, Side.LONG, 0.67, \"rwa slow trend\", 0.02, 24)\n    return _base(candles, Side.FLAT, 0.4, \"rwa: no slow trend\", 0.0, 1)\n\n\ndef _perpetual(candles: list[Candle], closes: list[float]) -> Signal:\n    funding = candles[-1].funding_rate\n    drift = closes[-1] / closes[-6] - 1.0\n    if funding >= 0.001:\n        return _base(candles, Side.ALERT, 0.7, \"perp funding crowded: monitor, no carry\", 0.0, 1)\n    if funding <= -0.0005 and abs(drift) < 0.04:\n        return _base(candles, Side.LONG, 0.75, \"perp funding carry: negative funding, basis contained\", 0.02, 8)\n    if funding <= -0.0005:\n        return _base(candles, Side.FLAT, 0.5, \"perp funding attractive but drift not contained\", 0.0, 1)\n    return _base(candles, Side.FLAT, 0.4, \"perp: no carry edge\", 0.0, 1)\n
+"""Asset-class strategy research rules.
+
+Transparent heuristics for paper research. Not forecasts and not a recommendation
+to trade. Each class has an entry, an invalidation, and a regime overlay.
+Version 0.41 adds volatility-adaptive confidence/size scaling and an ADX-style
+trend-strength proxy for majors and large-cap alts.
+"""
+
+from __future__ import annotations
+
+from statistics import fmean, pstdev
+
+from crypto_intel.models import AssetClass, Candle, Side, Signal
+from crypto_intel.regime import Regime, atr_pct, classify
+
+PLAYBOOK: dict[AssetClass, dict[str, str]] = {
+    AssetClass.MAJOR: {
+        "hypothesis": "Liquid majors trend with multi-factor and trend-strength confirmation, except under stress or stretched RSI.",
+        "entry": "Fast EMA above slow EMA, RSI 45-70, volume >=0.9x, BB positive, ADX-style strength >1.2, adaptive vol scale.",
+        "invalidation": "Stress regime, RSI >70, thin volume, weak trend strength, or multi-factor mismatch.",
+        "horizon": "8 bars mean-reversion, 20 bars trend",
+    },
+    AssetClass.LARGE_CAP_ALT: {
+        "hypothesis": "Breakouts require volume, BB, and trend-strength confirmation; stress suppressed.",
+        "entry": "Close above prior five-bar high, volume >=1.2x, BB >0.5, non-stress, strength proxy.",
+        "invalidation": "Stress or missing confirmation.",
+        "horizon": "12 bars",
+    },
+    AssetClass.STABLECOIN: {
+        "hypothesis": "The useful signal is a peg break, not direction.",
+        "entry": "Deviation of 50 bps or more raises an alert. No order.",
+        "invalidation": "Not applicable. Size stays zero.",
+        "horizon": "1 bar monitor",
+    },
+    AssetClass.DEFI: {
+        "hypothesis": "Trend only in a calm realised-vol regime with volume support.",
+        "entry": "Close above 8-bar EMA, realised vol <=6%, non-stress, volume ok, adaptive scale.",
+        "invalidation": "Stress or high vol.",
+        "horizon": "10 bars",
+    },
+    AssetClass.MEME: {
+        "hypothesis": "Most bursts are untradeable. Qualified bursts require volume spike vs longer average and hard time stop.",
+        "entry": "15% four-bar burst, volume spike vs 10-bar avg, not extended 40%, liquidity floor.",
+        "invalidation": "Thin liquidity or chase extension.",
+        "horizon": "3 bars",
+    },
+    AssetClass.L2: {
+        "hypothesis": "L2 tokens are relative-strength bets versus a benchmark.",
+        "entry": "Six-bar excess >3% vs non-stress benchmark.",
+        "invalidation": "Missing or stressed benchmark.",
+        "horizon": "12 bars",
+    },
+    AssetClass.RWA: {
+        "hypothesis": "Tokenised real-world assets should be slow. Gaps are a halt.",
+        "entry": "Close above EMA and prior close, gap <8%, non-stress.",
+        "invalidation": "Gap or stress.",
+        "horizon": "24 bars",
+    },
+    AssetClass.PERPETUAL: {
+        "hypothesis": "Negative funding with contained drift is a carry observation; sudden funding flips raise alerts.",
+        "entry": "Funding <= -5 bps, |drift| <4%, funding not flipping sharply positive.",
+        "invalidation": "Crowded funding, excess drift, or sharp funding flip.",
+        "horizon": "8 bars",
+    },
+}
+
+
+def _returns(closes: list[float]) -> list[float]:
+    return [closes[i] / closes[i - 1] - 1.0 for i in range(1, len(closes))]
+
+
+def _ema(values: list[float], span: int) -> float:
+    alpha = 2.0 / (span + 1)
+    value = values[0]
+    for point in values[1:]:
+        value = alpha * point + (1 - alpha) * value
+    return value
+
+
+def _rsi(closes: list[float], period: int = 14) -> float:
+    changes = _returns(closes[-(period + 1) :])
+    gains = [max(change, 0.0) for change in changes]
+    losses = [abs(min(change, 0.0)) for change in changes]
+    average_loss = fmean(losses) if losses else 0.0
+    if average_loss == 0:
+        return 100.0
+    rs = fmean(gains) / average_loss
+    return 100.0 - (100.0 / (1.0 + rs))
+
+
+def _rel_volume(candles: list[Candle]) -> float:
+    if len(candles) < 6:
+        return 1.0
+    recent = fmean(c.volume for c in candles[-5:-1])
+    return candles[-1].volume / recent if recent else 1.0
+
+
+def _bb_position(closes: list[float]) -> float:
+    if len(closes) < 8:
+        return 0.0
+    window = closes[-8:]
+    mean = fmean(window)
+    std = pstdev(window) or 0.001
+    return (closes[-1] - mean) / std
+
+
+def _adx_proxy(candles: list[Candle]) -> float:
+    """Simple directional-movement strength proxy (not full ADX)."""
+    if len(candles) < 8:
+        return 1.0
+    ups = []
+    downs = []
+    for i in range(1, len(candles)):
+        high_diff = candles[i].high - candles[i-1].high
+        low_diff = candles[i-1].low - candles[i].low
+        ups.append(max(high_diff, 0.0))
+        downs.append(max(low_diff, 0.0))
+    up_avg = fmean(ups[-7:]) if ups else 0.0
+    down_avg = fmean(downs[-7:]) if downs else 0.0
+    if up_avg + down_avg == 0:
+        return 1.0
+    return max(up_avg, down_avg) / (up_avg + down_avg + 1e-9) * 2  # scale around 1.0
+
+
+def _adaptive_factor(candles: list[Candle]) -> float:
+    """Scale confidence/size down when current ATR exceeds recent baseline."""
+    if len(candles) < 16:
+        return 1.0
+    current = atr_pct(candles[-8:])
+    baseline = atr_pct(candles[-16:-8]) or current
+    if baseline == 0:
+        return 1.0
+    ratio = current / baseline
+    return max(0.6, min(1.1, 1.2 - ratio * 0.3))
+
+
+def _base(candles: list[Candle], side: Side, confidence: float, reason: str, size: float, bars: int) -> Signal:
+    last = candles[-1]
+    regime = classify(candles)
+    vol = atr_pct(candles)
+    adapt = _adaptive_factor(candles)
+    adj_conf = round(max(0.0, min(confidence * adapt, 1.0)), 4)
+    adj_size = round(size * adapt, 4)
+    return Signal(
+        symbol=last.symbol,
+        asset_class=last.asset_class,
+        side=side,
+        confidence=adj_conf,
+        reason=f"{reason}; regime={regime.value}; atr={vol:.3f}; bb={_bb_position([c.close for c in candles]):.2f}; adapt={adapt:.2f}",
+        stop_distance_pct=round(max(vol * 1.5, 0.01), 4),
+        size_fraction=adj_size,
+        horizon_bars=bars,
+    )
+
+
+def signal_for(candles: list[Candle], benchmark: list[Candle] | None = None) -> Signal:
+    if len(candles) < 8:
+        raise ValueError("need at least 8 candles")
+    asset_class = candles[-1].asset_class
+    closes = [c.close for c in candles]
+    regime = classify(candles)
+    if asset_class is AssetClass.MAJOR:
+        return _major(candles, closes, regime)
+    if asset_class is AssetClass.LARGE_CAP_ALT:
+        return _breakout(candles, closes, size=0.04, bars=12, regime=regime)
+    if asset_class is AssetClass.STABLECOIN:
+        return _stable(candles)
+    if asset_class is AssetClass.DEFI:
+        return _defi(candles, closes, regime)
+    if asset_class is AssetClass.MEME:
+        return _meme(candles, closes)
+    if asset_class is AssetClass.L2:
+        return _l2(candles, closes, benchmark)
+    if asset_class is AssetClass.RWA:
+        return _rwa(candles, closes, regime)
+    return _perpetual(candles, closes)
+
+
+def _major(candles: list[Candle], closes: list[float], regime: Regime) -> Signal:
+    fast, slow = _ema(closes, 5), _ema(closes, 13)
+    rsi = _rsi(closes)
+    rel_vol = _rel_volume(candles)
+    bb = _bb_position(closes)
+    strength = _adx_proxy(candles)
+    if regime is Regime.STRESS:
+        return _base(candles, Side.FLAT, 0.45, "major stress: stand aside", 0.0, 1)
+    if fast > slow and 45 <= rsi <= 70 and rel_vol >= 0.9 and bb > 0.0 and strength > 1.15:
+        conf = 0.74 + min(0.06, rel_vol * 0.02)
+        return _base(candles, Side.LONG, conf, "major multi-factor trend with strength", 0.06, 20)
+    if regime is Regime.RANGE and rsi < 30 and closes[-1] > closes[-3] and bb < -1.0:
+        return _base(candles, Side.LONG, 0.65, "major mean-reversion: washed-out RSI + below BB in range", 0.03, 8)
+    return _base(candles, Side.FLAT, 0.4, "major: no multi-factor edge", 0.0, 1)
+
+
+def _breakout(candles: list[Candle], closes: list[float], size: float, bars: int, regime: Regime) -> Signal:
+    if regime is Regime.STRESS:
+        return _base(candles, Side.FLAT, 0.4, "breakout suppressed in stress", 0.0, 1)
+    window = closes[-6:-1]
+    volume_now = candles[-1].volume
+    volume_base = fmean(c.volume for c in candles[-6:-1])
+    bb = _bb_position(closes)
+    strength = _adx_proxy(candles)
+    if closes[-1] > max(window) and volume_now > volume_base * 1.2 and bb > 0.5 and strength > 1.1:
+        return _base(candles, Side.LONG, 0.73, "breakout with volume, BB, and strength", size, bars)
+    return _base(candles, Side.FLAT, 0.35, "no multi-factor breakout", 0.0, 1)
+
+
+def _stable(candles: list[Candle]) -> Signal:
+    deviation = abs(candles[-1].close - 1.0)
+    if deviation >= 0.005:
+        return _base(candles, Side.ALERT, 0.92, f"stablecoin depeg monitor: deviation {deviation:.4f}", 0.0, 1)
+    if deviation >= 0.002:
+        return _base(candles, Side.ALERT, 0.7, f"stablecoin watch band: deviation {deviation:.4f}", 0.0, 1)
+    return _base(candles, Side.FLAT, 0.8, "stablecoin inside peg band", 0.0, 1)
+
+
+def _defi(candles: list[Candle], closes: list[float], regime: Regime) -> Signal:
+    realised = fmean(abs(v) for v in _returns(closes[-8:]))
+    if regime is Regime.STRESS or realised > 0.06:
+        return _base(candles, Side.FLAT, 0.48, "defi volatility regime: stand aside", 0.0, 1)
+    if closes[-1] > _ema(closes, 8) and _rel_volume(candles) >= 0.8:
+        return _base(candles, Side.LONG, 0.70, "defi trend in calm regime with volume", 0.02, 10)
+    return _base(candles, Side.FLAT, 0.4, "defi: no calm multi-factor trend", 0.0, 1)
+
+
+def _meme(candles: list[Candle], closes: list[float]) -> Signal:
+    liquidity = fmean(c.volume for c in candles[-5:])
+    longer_vol = fmean(c.volume for c in candles[-10:]) if len(candles) >= 10 else liquidity
+    burst = closes[-1] / closes[-4] - 1.0
+    extension = closes[-1] / closes[-8] - 1.0
+    if liquidity < 1000:
+        return _base(candles, Side.FLAT, 0.2, "meme liquidity proxy too thin", 0.0, 1)
+    if extension > 0.40:
+        return _base(candles, Side.FLAT, 0.35, "meme chase filter: 8-bar extension too large", 0.0, 1)
+    if burst > 0.15 and candles[-1].volume > candles[-2].volume and candles[-1].volume > longer_vol * 1.5:
+        return _base(candles, Side.LONG, 0.78, "meme momentum burst with volume spike; hard time stop applies", 0.005, 3)
+    return _base(candles, Side.FLAT, 0.3, "meme: no qualified burst", 0.0, 1)
+
+
+def _l2(candles: list[Candle], closes: list[float], benchmark: list[Candle] | None) -> Signal:
+    if not benchmark or len(benchmark) < 8:
+        return _base(candles, Side.FLAT, 0.3, "l2 requires a benchmark series", 0.0, 1)
+    if classify(benchmark) is Regime.STRESS:
+        return _base(candles, Side.FLAT, 0.42, "l2 benchmark in stress", 0.0, 1)
+    own = closes[-1] / closes[-6] - 1.0
+    bench_closes = [c.close for c in benchmark]
+    bench = bench_closes[-1] / bench_closes[-6] - 1.0
+    if own - bench > 0.03:
+        return _base(candles, Side.LONG, 0.7, "l2 relative strength versus benchmark", 0.03, 12)
+    return _base(candles, Side.FLAT, 0.4, "l2 not leading benchmark", 0.0, 1)
+
+
+def _rwa(candles: list[Candle], closes: list[float], regime: Regime) -> Signal:
+    gap = candles[-1].open / candles[-2].close - 1.0
+    if abs(gap) > 0.08 or regime is Regime.STRESS:
+        return _base(candles, Side.FLAT, 0.5, "rwa gap or stress halt", 0.0, 1)
+    if closes[-1] > _ema(closes, 8) and closes[-1] > closes[-5]:
+        return _base(candles, Side.LONG, 0.67, "rwa slow trend", 0.02, 24)
+    return _base(candles, Side.FLAT, 0.4, "rwa: no slow trend", 0.0, 1)
+
+
+def _perpetual(candles: list[Candle], closes: list[float]) -> Signal:
+    funding = candles[-1].funding_rate
+    prior_funding = candles[-2].funding_rate if len(candles) > 1 else funding
+    drift = closes[-1] / closes[-6] - 1.0
+    if funding >= 0.001 or (funding > prior_funding + 0.0003 and funding > 0):
+        return _base(candles, Side.ALERT, 0.7, "perp funding crowded or flipping: monitor, no carry", 0.0, 1)
+    if funding <= -0.0005 and abs(drift) < 0.04:
+        return _base(candles, Side.LONG, 0.75, "perp funding carry: negative funding, basis contained", 0.02, 8)
+    if funding <= -0.0005:
+        return _base(candles, Side.FLAT, 0.5, "perp funding attractive but drift not contained", 0.0, 1)
+    return _base(candles, Side.FLAT, 0.4, "perp: no carry edge", 0.0, 1)
