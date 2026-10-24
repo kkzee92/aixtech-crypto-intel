@@ -1,8 +1,8 @@
 """Cyber and data-security controls for the information system.
 
 This is a research control plane, not a certified security product.
-Version 0.42 expands secret patterns for JWT-like tokens and additional cloud keys,
-adds a consecutive-action counter in the audit stamp for basic anomaly visibility,
+Version 0.43 expands secret patterns for additional hardware and exchange formats,
+adds an anomaly note when consecutive actions exceed a research threshold,
 and strengthens zero-trust notes.
 """
 
@@ -26,6 +26,8 @@ SECRET_PATTERNS = (
     re.compile(r"\b(?:abandon|ability|able|about|above|absent|absorb|abstract|absurd|abuse)\b(?:\s+\w+){11,23}", re.IGNORECASE),  # BIP39 start sample
     re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b"),  # JWT-like
     re.compile(r"\b(?:ya29\.|1//)[A-Za-z0-9_-]{20,}\b"),  # Google-style tokens approx
+    re.compile(r"\b(?:xprv|xpub)[A-Za-z0-9]{100,}\b"),  # extended key approx
+    re.compile(r"\b[A-Za-z0-9+/]{40,}={0,2}\b"),  # base64-like long secrets (research filter)
 )
 
 WALLET_PATTERN = re.compile(r"\b0x[a-fA-F0-9]{40}\b")
@@ -50,6 +52,7 @@ CLASSIFICATION = (
     DataClassification("session_token", "secret", "never stored"),
     DataClassification("hardware_seed", "secret", "never stored"),
     DataClassification("jwt_token", "secret", "never stored"),
+    DataClassification("anomaly_flag", "integrity", "audit retention"),
 )
 
 
@@ -97,7 +100,8 @@ class AuditLog:
         else:
             self._consecutive = 1
             self._last_action = action
-        stamped = f"{safe_detail} | ts={datetime.now(timezone.utc).isoformat(timespec='seconds')} | lineage={lineage} | consec={self._consecutive}"
+        anomaly = " | anomaly=consec_burst" if self._consecutive >= 5 else ""
+        stamped = f"{safe_detail} | ts={datetime.now(timezone.utc).isoformat(timespec='seconds')} | lineage={lineage} | consec={self._consecutive}{anomaly}"
         sequence = len(self.events) + 1
         digest = hash_event(self._previous, sequence, action, stamped)
         event = AuditEvent(sequence, action, stamped, self._previous, digest)
