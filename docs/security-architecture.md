@@ -1,6 +1,6 @@
 # Security architecture
 
-Version 0.3 extends the control plane. It is still a research design, not a
+Version 0.45 extends the control plane. It is still a research design, not a
 certified security product and not legal advice.
 
 ## Trust boundaries
@@ -42,6 +42,7 @@ There is no trader role. Promoting a signal to a broker is a separate system.
 | Private key / mnemonic | Secret | Refused, redacted |
 | Wallet address | Sensitive identifier | Redacted, banned from fixtures |
 | Email, NRIC, phone | Personal | Tripwire in `scripts/check_pdpa.py` |
+| Solana-style key | Secret | Refused, redacted |
 
 PDPA note: the tripwire is not a data-loss-prevention product. A production
 deployment still needs access control, vendor review, and a human DPO decision.
@@ -62,16 +63,17 @@ The loader still rejects anything that is not labelled SYNTHETIC.
 
 | Threat | Control |
 |---|---|
-| Secret committed | gitleaks CI, expanded redaction patterns, no key loader |
+| Secret committed | gitleaks CI, expanded redaction patterns (incl. Solana), no key loader |
 | Trade key pasted into config | `refuse_trade_secret` |
 | Strategy injection via fixture | SYNTHETIC label required, source attestation |
 | Stale or jumped public ticker | feed status watch or high |
-| Oversized risk on thin assets | Per-class cap, confidence floor, class cost, volatility scaling |
+| Oversized risk on thin assets | Per-class cap, confidence floor, class cost, volatility scaling, VWAP/volume filters |
 | Runaway loss | Drawdown halt and kill switch |
 | Audit tamper | SHA-256 chain over sequence, action, timestamped detail |
 | Live-order mistake | No live client; mode guard; RBAC deny |
 | Personal data in agent context | AGENTS.md ban plus CI tripwire |
 | Privilege creep | No role can place an order |
+| Solana key paste | Base58 pattern + redaction |
 
 ## Incident handling
 

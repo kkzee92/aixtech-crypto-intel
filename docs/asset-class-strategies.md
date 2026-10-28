@@ -2,7 +2,7 @@
 
 These rules are research heuristics. Each class has an edge hypothesis, an
 entry, an invalidation, a horizon, and a size cap. They are not a promise of
-return. Version 0.3 adds stronger volume confirmation and volatility context.
+return. Version 0.45 adds Bollinger Band width and VWAP proxies for confirmation.
 
 Regime labels, from `regime.py`:
 
@@ -14,14 +14,13 @@ Regime labels, from `regime.py`:
 
 Hypothesis: liquid majors trend often enough that a fast EMA above a slow EMA
 is usable, unless RSI is stretched or the book is in stress. Mean reversion is
-allowed only in a range regime. Volume must be at least 90% of recent average
-for the trend path. Cap 8%. Horizon 8 or 20 bars. Research cost 8 bps round trip.
+allowed only in a range regime with BB squeeze. Volume, VWAP, Ichimoku, ADX, and other multi-factor confirmation required for the trend path. Cap 8%. Horizon 8 or 20 bars. Research cost 8 bps round trip.
 
 ## Large-cap alt
 
 Hypothesis: breakouts without volume are noise, and stress-regime breakouts are
 gap risk. Entry needs a close above the prior five-bar high, volume at least
-1.2 times the recent average, and a non-stress regime. Cap 4%. Cost 14 bps.
+1.2 times the recent average, Ichimoku and VWAP confirmation, and a non-stress regime. Cap 4%. Cost 14 bps.
 
 ## Stablecoin
 
@@ -33,7 +32,7 @@ zero. Cost assumption is unused because no order is allowed.
 
 Hypothesis: trend signals in high realised-volatility or stress regimes are
 mostly gap risk. Stand aside if mean absolute return over 8 bars exceeds 6%
-or the regime is stress. Cap 2%. Cost 22 bps.
+or the regime is stress or ADX weak. Prefer above VWAP. Cap 2%. Cost 22 bps.
 
 ## Meme
 
@@ -44,12 +43,12 @@ is still under 40%. Horizon is 3 bars. Cap 0.5%. Cost 45 bps.
 ## L2
 
 Hypothesis: L2 tokens are bets on relative strength versus a benchmark. No
-benchmark, or a benchmark in stress, means no trade. Cap 3%. Cost 16 bps.
+benchmark, or a benchmark in stress, means no trade. Prefer above VWAP. Cap 3%. Cost 16 bps.
 
 ## RWA
 
 Hypothesis: tokenised real-world assets should be slow. An open-to-prior-close
-gap above 8%, or a stress regime, halts the idea. Cap 2%, horizon 24 bars.
+gap above 8%, or a stress regime, halts the idea. Volume confirmation preferred. Cap 2%, horizon 24 bars.
 Cost 12 bps.
 
 ## Perpetual
