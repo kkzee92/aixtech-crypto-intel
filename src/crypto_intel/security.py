@@ -1,9 +1,8 @@
 """Cyber and data-security controls for the information system.
 
 This is a research control plane, not a certified security product.
-Version 0.44 expands secret patterns for BIP39 seed variants and hardware exports,
-supports optional multi-hash sealed lineage, and strengthens zero-trust notes
-with data residency simulation.
+Version 0.45 expands secret patterns for Solana-style base58 keys, additional
+BIP39 variants, and common API formats. Strengthens redaction and zero-trust notes.
 """
 
 from __future__ import annotations
@@ -29,6 +28,8 @@ SECRET_PATTERNS = (
     re.compile(r"\b(?:xprv|xpub)[A-Za-z0-9]{100,}\b"),
     re.compile(r"\b(?:session[_-]?cookie|auth[_-]?token)\s*[:=]\s*['\"]?[A-Za-z0-9_\-]{16,}", re.IGNORECASE),
     re.compile(r"\b(?:hardware[_-]?export|wallet[_-]?backup)\s*[:=]\s*['\"]?[A-Za-z0-9_\-]{20,}", re.IGNORECASE),
+    re.compile(r"\b[1-9A-HJ-NP-Za-km-z]{64,88}\b"),  # Solana-style base58 private keys
+    re.compile(r"(?i)(solana[_-]?key|private[_-]?key)\s*[:=]\s*['\"]?[1-9A-HJ-NP-Za-km-z]{32,}"),
 )
 
 WALLET_PATTERN = re.compile(r"\b0x[a-fA-F0-9]{40}\b")
@@ -56,6 +57,7 @@ CLASSIFICATION = (
     DataClassification("hardware_export", "secret", "never stored"),
     DataClassification("session_cookie", "secret", "never stored"),
     DataClassification("bip39_seed", "secret", "never stored"),
+    DataClassification("solana_key", "secret", "never stored"),
 )
 
 
@@ -95,6 +97,11 @@ def multi_hash_attest(payload: str) -> str:
 def residency_stamp(region: str = "research-zone") -> str:
     """Simulated data residency tag for zero-trust lineage."""
     return f"residency={region}|ts={datetime.now(timezone.utc).isoformat(timespec='seconds')}"
+
+
+def key_rotation_attest(old_digest: str, new_digest: str) -> str:
+    """Simulated key-rotation attestation for research audit trails."""
+    return f"rotation:{integrity_digest(old_digest + new_digest)}"
 
 
 class AuditLog:
