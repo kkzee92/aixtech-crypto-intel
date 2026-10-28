@@ -5,7 +5,7 @@ evaluation. It does not place live orders, does not store exchange secrets, and
 is not financial advice.
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![version](https://img.shields.io/badge/version-0.44.0-blue)
+![version](https://img.shields.io/badge/version-0.45.0-blue)
 ![mode](https://img.shields.io/badge/execution-paper%20only-orange)
 ![Licence](https://img.shields.io/badge/licence-MIT-green)
 
@@ -13,25 +13,25 @@ is not financial advice.
 
 - Classifies markets into eight asset classes and applies a different research rule to each.
 - Labels each series trend, range, or stress, and stands aside in stress.
-- Scores a signal with multi-factor confirmation plus adaptive volatility scaling, trend-strength proxy, MACD-style histogram, multi-TF consistency, Supertrend-style proxy, Stochastic, Ichimoku cloud proxy, ADX, and RSI divergence (v0.44), then a risk gate that can shrink or refuse it.
+- Scores a signal with multi-factor confirmation plus adaptive volatility scaling, trend-strength proxy, MACD-style histogram, multi-TF consistency, Supertrend-style proxy, Stochastic, Ichimoku cloud proxy, ADX, RSI divergence, Bollinger Band width, and VWAP proxy (v0.45), then a risk gate that can shrink or refuse it.
 - Applies a declared round-trip cost by asset class in the paper backtest.
-- Writes a hash-chained audit log with UTC timestamps, lineage stamp (optional multi-hash sealed digest), consecutive-action counter, residency stamp, attests fixture sources, and redacts secret-like strings (expanded for extended keys, session cookies, hardware exports, and BIP39).
+- Writes a hash-chained audit log with UTC timestamps, lineage stamp (optional multi-hash sealed digest), consecutive-action counter, residency stamp, attests fixture sources, and redacts secret-like strings (expanded for extended keys, session cookies, hardware exports, BIP39, and Solana-style keys).
 - Backtests on **synthetic** candles only. Network access is injectable and unused by default.
 
 | Asset class | Research rule | Risk cap | Cost |
 |---|---|---|---|
-| Major (BTC, ETH) | Multi-factor EMA + strength + MACD + multi-TF + Supertrend + Ichimoku + ADX outside stress; range-only RSI + Stochastic + BB + divergence reversion; adaptive vol scale | 8% | 8 bps |
-| Large-cap alt | Breakout with volume, BB, strength, MACD, Supertrend, and Ichimoku, suppressed in stress | 4% | 14 bps |
+| Major (BTC, ETH) | Multi-factor EMA + strength + MACD + multi-TF + Supertrend + Ichimoku + ADX + BB width + VWAP outside stress; range-only RSI + Stochastic + BB + divergence reversion; adaptive vol scale | 8% | 8 bps |
+| Large-cap alt | Breakout with volume, BB, strength, MACD, Supertrend, Ichimoku, and VWAP, suppressed in stress | 4% | 14 bps |
 | Stablecoin | 20 bp watch, 50 bp depeg alert. No order | 0% | n/a |
-| DeFi | Trend only in a calm, non-stress regime with volume, Stochastic, and ADX | 2% | 22 bps |
+| DeFi | Trend only in a calm, non-stress regime with volume, Stochastic, ADX, and VWAP | 2% | 22 bps |
 | Meme | Qualified burst with volume spike vs longer avg, chase filter, 3-bar horizon | 0.5% | 45 bps |
-| L2 | Relative strength versus a non-stress benchmark | 3% | 16 bps |
-| RWA | Slow trend; halt on an 8% gap or stress | 2% | 12 bps |
+| L2 | Relative strength versus a non-stress benchmark with volume/VWAP confirmation | 3% | 16 bps |
+| RWA | Slow trend; halt on an 8% gap or stress, with volume filter | 2% | 12 bps |
 | Perpetual | Negative-funding carry if drift contained; crowded or flipping funding is an alert | 2% | 10 bps |
 
 Full notes: [docs/asset-class-strategies.md](docs/asset-class-strategies.md).
 Security design: [docs/security-architecture.md](docs/security-architecture.md).
-Latest enhancements: [docs/v44-enhanced-ichimoku-and-cyber.md](docs/v44-enhanced-ichimoku-and-cyber.md).
+Latest enhancements: [docs/v45-enhanced-bb-vwap-and-cyber.md](docs/v45-enhanced-bb-vwap-and-cyber.md).
 
 ## Run
 
@@ -51,7 +51,7 @@ The fixture is labelled `SYNTHETIC` and is not a market history.
 
 1. Paper-only execution. `HALTED` and any live mode raise `PermissionError`.
 2. Trade and withdrawal credential names are refused. No role can place an order.
-3. Class size caps, confidence floors, kill switch, drawdown halt, RWA gap halt, stress overlay, multi-factor, MACD, multi-TF, Supertrend, Stochastic, Ichimoku, ADX, RSI divergence, and adaptive filters.
+3. Class size caps, confidence floors, kill switch, drawdown halt, RWA gap halt, stress overlay, multi-factor, MACD, multi-TF, Supertrend, Stochastic, Ichimoku, ADX, RSI divergence, BB width, VWAP, and adaptive filters.
 4. Hash-chained audit log with timestamps, lineage (optional multi-hash sealed), consecutive counter, residency stamp, source attestation, feed jump and staleness checks.
 5. PDPA-style tripwire over fixtures and docs.
 6. Ruff lint (including bandit-style `S` rules), format, pytest coverage floor, gitleaks in CI.
