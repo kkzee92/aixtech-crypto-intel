@@ -1,9 +1,9 @@
 """Cyber and data-security controls for the information system.
 
 This is a research control plane, not a certified security product.
-Version 0.44 expands secret patterns for BIP39 seed variants and hardware exports,
-supports optional multi-hash sealed lineage, and strengthens zero-trust notes
-with data residency simulation.
+Version 0.45 expands secret patterns for exchange API prefixes and hex keys,
+adds audit anomaly detection for consecutive actions, and strengthens
+zero-trust notes with volatility-feature lineage.
 """
 
 from __future__ import annotations
@@ -29,6 +29,8 @@ SECRET_PATTERNS = (
     re.compile(r"\b(?:xprv|xpub)[A-Za-z0-9]{100,}\b"),
     re.compile(r"\b(?:session[_-]?cookie|auth[_-]?token)\s*[:=]\s*['\"]?[A-Za-z0-9_\-]{16,}", re.IGNORECASE),
     re.compile(r"\b(?:hardware[_-]?export|wallet[_-]?backup)\s*[:=]\s*['\"]?[A-Za-z0-9_\-]{20,}", re.IGNORECASE),
+    re.compile(r"\b(?:binance|coinbase|kraken|bybit)[_-]?api[_-]?key\s*[:=]\s*['\"]?[A-Za-z0-9]{16,}", re.IGNORECASE),
+    re.compile(r"\b(?:0x)?[0-9a-fA-F]{64}\b"),  # additional hex private key
 )
 
 WALLET_PATTERN = re.compile(r"\b0x[a-fA-F0-9]{40}\b")
@@ -56,6 +58,7 @@ CLASSIFICATION = (
     DataClassification("hardware_export", "secret", "never stored"),
     DataClassification("session_cookie", "secret", "never stored"),
     DataClassification("bip39_seed", "secret", "never stored"),
+    DataClassification("exchange_prefix_key", "secret", "never stored"),
 )
 
 
@@ -97,6 +100,11 @@ def residency_stamp(region: str = "research-zone") -> str:
     return f"residency={region}|ts={datetime.now(timezone.utc).isoformat(timespec='seconds')}"
 
 
+def detect_audit_anomaly(consecutive: int, threshold: int = 10) -> bool:
+    """Flag potential automation abuse if consecutive identical actions exceed threshold."""
+    return consecutive > threshold
+
+
 class AuditLog:
     """Append-only hash chain with simulated lineage. Tampering changes the next digest."""
 
@@ -115,7 +123,9 @@ class AuditLog:
         else:
             self._consecutive = 1
             self._last_action = action
-        stamped = f"{safe_detail} | ts={datetime.now(timezone.utc).isoformat(timespec='seconds')} | lineage={lineage} | consec={self._consecutive} | {residency_stamp(region)}"
+        anomaly = detect_audit_anomaly(self._consecutive)
+        anomaly_tag = " | anomaly=high-consec" if anomaly else ""
+        stamped = f"{safe_detail} | ts={datetime.now(timezone.utc).isoformat(timespec='seconds')} | lineage={lineage} | consec={self._consecutive}{anomaly_tag} | {residency_stamp(region)}"
         sequence = len(self.events) + 1
         digest = hash_event(self._previous, sequence, action, stamped)
         event = AuditEvent(sequence, action, stamped, self._previous, digest)
