@@ -2,8 +2,8 @@
 
 Transparent heuristics for paper research. Not forecasts and not a recommendation
 to trade. Each class has an entry, an invalidation, and a regime overlay.
-Version 0.44 adds Ichimoku cloud proxy (Tenkan/Kijun), ADX trend-strength
-confirmation, and RSI divergence detection for majors, large-cap, and DeFi.
+Version 0.45 adds Bollinger Band proxy, volume profile confirmation, and
+adaptive volatility clustering for majors, large-cap, meme, and DeFi.
 """
 
 from __future__ import annotations
@@ -15,15 +15,15 @@ from crypto_intel.regime import Regime, atr_pct, classify
 
 PLAYBOOK: dict[AssetClass, dict[str, str]] = {
     AssetClass.MAJOR: {
-        "hypothesis": "Liquid majors trend with multi-factor, MACD, multi-TF, Supertrend, Stochastic, Ichimoku, and ADX confirmation, except under stress.",
-        "entry": "Fast EMA above slow, RSI 45-70, volume ok, BB positive, strength, MACD hist >0, multi-TF aligned, Supertrend long, Ichimoku bullish, ADX >20, adaptive scale.",
-        "invalidation": "Stress, RSI >70, thin volume, weak strength, negative MACD, multi-TF mismatch, Supertrend short, Ichimoku bearish, or ADX <15.",
+        "hypothesis": "Liquid majors trend with multi-factor, MACD, multi-TF, Supertrend, Stochastic, Ichimoku, ADX, BB, and vol profile confirmation, except under stress.",
+        "entry": "Fast EMA above slow, RSI 45-70, volume ok, BB mid-upper, strength, MACD hist >0, multi-TF aligned, Supertrend long, Ichimoku bullish, ADX >20, vol profile high, adaptive scale.",
+        "invalidation": "Stress, RSI >70, thin volume, weak strength, negative MACD, multi-TF mismatch, Supertrend short, Ichimoku bearish, ADX <15, BB extreme, or low vol.",
         "horizon": "8 bars mean-reversion, 20 bars trend",
     },
     AssetClass.LARGE_CAP_ALT: {
-        "hypothesis": "Breakouts need volume, strength, MACD, Supertrend, and Ichimoku alignment outside stress.",
-        "entry": "Close above prior high, volume spike, BB, strength, MACD, Supertrend, Ichimoku.",
-        "invalidation": "Stress, no volume, weak indicators.",
+        "hypothesis": "Breakouts need volume, strength, MACD, Supertrend, Ichimoku, BB, and vol profile alignment outside stress.",
+        "entry": "Close above prior high, volume spike, BB, strength, MACD, Supertrend, Ichimoku, vol profile.",
+        "invalidation": "Stress, no volume, weak indicators, low vol profile.",
         "horizon": "12 bars",
     },
     AssetClass.STABLECOIN: {
@@ -33,15 +33,15 @@ PLAYBOOK: dict[AssetClass, dict[str, str]] = {
         "horizon": "1 bar monitor",
     },
     AssetClass.DEFI: {
-        "hypothesis": "Trend only in a calm, non-stress regime with volume, Stochastic, and ADX.",
-        "entry": "Close above EMA, low realised vol, Stochastic not overbought, ADX moderate.",
+        "hypothesis": "Trend only in a calm, non-stress regime with volume, Stochastic, ADX, and vol clustering.",
+        "entry": "Close above EMA, low realised vol, Stochastic not overbought, ADX moderate, vol cluster calm.",
         "invalidation": "Stress, high vol, or weak ADX.",
         "horizon": "10 bars",
     },
     AssetClass.MEME: {
-        "hypothesis": "Most bursts are untradeable. A qualified burst still gets a hard time stop.",
-        "entry": "15% four-bar burst, rising volume, volume floor, and not already extended 40% over 8 bars.",
-        "invalidation": "Thin liquidity proxy or chase extension.",
+        "hypothesis": "Most bursts are untradeable. A qualified burst still gets a hard time stop with vol profile.",
+        "entry": "15% four-bar burst, rising volume, volume floor, not extended 40% over 8 bars, vol profile spike.",
+        "invalidation": "Thin liquidity proxy or chase extension or low vol.",
         "horizon": "3 bars",
     },
     AssetClass.L2: {
@@ -148,6 +148,42 @@ def _rsi_divergence(closes: list[float]) -> str:
     return "none"
 
 
+def _bb_proxy(closes: list[float], period: int = 20) -> tuple[float, float, float, str]:
+    """Bollinger Band proxy: mean, upper, lower, position."""
+    if len(closes) < period:
+        return 0.0, 0.0, 0.0, "neutral"
+    window = closes[-period:]
+    mean = fmean(window)
+    std = pstdev(window) if len(window) > 1 else 0.0
+    upper = mean + 2 * std
+    lower = mean - 2 * std
+    last = closes[-1]
+    if last > upper:
+        pos = "above"
+    elif last < lower:
+        pos = "below"
+    else:
+        pos = "inside"
+    return mean, upper, lower, pos
+
+
+def _vol_profile(candles: list[Candle], period: int = 20) -> tuple[float, str]:
+    """Volume profile proxy: relative volume and skew."""
+    if len(candles) < period:
+        return 1.0, "neutral"
+    vols = [c.volume for c in candles[-period:]]
+    avg = fmean(vols)
+    rel = candles[-1].volume / avg if avg else 1.0
+    skew = "high" if rel > 1.5 else "low" if rel < 0.7 else "normal"
+    return rel, skew
+
+
+def _vol_cluster(closes: list[float]) -> float:
+    """Adaptive vol clustering: stddev of recent returns."""
+    rets = _returns(closes[-20:])
+    return pstdev(rets) if len(rets) > 1 else 0.0
+
+
 def _base(candles: list[Candle], side: Side, confidence: float, reason: str, size: float, bars: int) -> Signal:
     last = candles[-1]
     regime = classify(candles)
@@ -192,12 +228,16 @@ def _major(candles: list[Candle], closes: list[float], regime: Regime) -> Signal
     _, _, ichi = _ichimoku_proxy(closes)
     adx = _adx_proxy(candles)
     div = _rsi_divergence(closes)
+    _, _, _, bb_pos = _bb_proxy(closes)
+    vol_rel, vol_skew = _vol_profile(candles)
+    vol_clust = _vol_cluster(closes)
     if regime is Regime.STRESS:
         return _base(candles, Side.FLAT, 0.45, "major stress: stand aside", 0.0, 1)
-    if fast > slow and 45 <= rsi <= 70 and ichi == "bullish" and adx > 20 and div != "bearish":
-        return _base(candles, Side.LONG, 0.76, f"major trend: EMA, RSI, Ichimoku {ichi}, ADX {adx:.1f}, no bearish div", 0.06, 20)
-    if regime is Regime.RANGE and rsi < 30 and closes[-1] > closes[-3] and div == "bullish":
-        return _base(candles, Side.LONG, 0.64, "major mean-reversion: washed-out RSI in range with bullish div", 0.03, 8)
+    if fast > slow and 45 <= rsi <= 70 and ichi == "bullish" and adx > 20 and div != "bearish" and bb_pos != "above" and vol_skew == "high":
+        conf = 0.76 * (1 - min(vol_clust * 2, 0.2))
+        return _base(candles, Side.LONG, conf, f"major trend: EMA, RSI, Ichimoku {ichi}, ADX {adx:.1f}, BB {bb_pos}, vol {vol_skew}, no bearish div", 0.06, 20)
+    if regime is Regime.RANGE and rsi < 30 and closes[-1] > closes[-3] and div == "bullish" and bb_pos == "below":
+        return _base(candles, Side.LONG, 0.64, "major mean-reversion: washed-out RSI in range with bullish div and BB below", 0.03, 8)
     return _base(candles, Side.FLAT, 0.4, "major: no trend or reversion edge", 0.0, 1)
 
 
@@ -208,8 +248,10 @@ def _breakout(candles: list[Candle], closes: list[float], size: float, bars: int
     volume_now = candles[-1].volume
     volume_base = fmean(c.volume for c in candles[-6:-1])
     _, _, ichi = _ichimoku_proxy(closes)
-    if closes[-1] > max(window) and volume_now > volume_base * 1.2 and ichi == "bullish":
-        return _base(candles, Side.LONG, 0.73, "breakout with volume and Ichimoku confirmation", size, bars)
+    _, _, _, bb_pos = _bb_proxy(closes)
+    vol_rel, vol_skew = _vol_profile(candles)
+    if closes[-1] > max(window) and volume_now > volume_base * 1.2 and ichi == "bullish" and bb_pos == "above" and vol_skew == "high":
+        return _base(candles, Side.LONG, 0.73, "breakout with volume, Ichimoku, BB, and vol profile confirmation", size, bars)
     return _base(candles, Side.FLAT, 0.35, "no confirmed breakout", 0.0, 1)
 
 
@@ -225,10 +267,11 @@ def _stable(candles: list[Candle]) -> Signal:
 def _defi(candles: list[Candle], closes: list[float], regime: Regime) -> Signal:
     realised = fmean(abs(v) for v in _returns(closes[-8:]))
     adx = _adx_proxy(candles)
-    if regime is Regime.STRESS or realised > 0.06 or adx < 15:
-        return _base(candles, Side.FLAT, 0.48, "defi volatility or weak ADX: stand aside", 0.0, 1)
+    vol_clust = _vol_cluster(closes)
+    if regime is Regime.STRESS or realised > 0.06 or adx < 15 or vol_clust > 0.05:
+        return _base(candles, Side.FLAT, 0.48, "defi volatility, weak ADX, or high cluster: stand aside", 0.0, 1)
     if closes[-1] > _ema(closes, 8):
-        return _base(candles, Side.LONG, 0.71, f"defi trend in calm regime with ADX {adx:.1f}", 0.02, 10)
+        return _base(candles, Side.LONG, 0.71, f"defi trend in calm regime with ADX {adx:.1f}, vol cluster {vol_clust:.3f}", 0.02, 10)
     return _base(candles, Side.FLAT, 0.4, "defi: no calm trend", 0.0, 1)
 
 
@@ -236,12 +279,13 @@ def _meme(candles: list[Candle], closes: list[float]) -> Signal:
     liquidity = fmean(c.volume for c in candles[-5:])
     burst = closes[-1] / closes[-4] - 1.0
     extension = closes[-1] / closes[-8] - 1.0
-    if liquidity < 1000:
-        return _base(candles, Side.FLAT, 0.2, "meme liquidity proxy too thin", 0.0, 1)
+    vol_rel, vol_skew = _vol_profile(candles)
+    if liquidity < 1000 or vol_skew == "low":
+        return _base(candles, Side.FLAT, 0.2, "meme liquidity proxy too thin or low vol profile", 0.0, 1)
     if extension > 0.40:
         return _base(candles, Side.FLAT, 0.35, "meme chase filter: 8-bar extension too large", 0.0, 1)
-    if burst > 0.15 and candles[-1].volume > candles[-2].volume:
-        return _base(candles, Side.LONG, 0.78, "meme momentum burst; hard time stop applies", 0.005, 3)
+    if burst > 0.15 and candles[-1].volume > candles[-2].volume and vol_skew == "high":
+        return _base(candles, Side.LONG, 0.78, "meme momentum burst with vol profile; hard time stop applies", 0.005, 3)
     return _base(candles, Side.FLAT, 0.3, "meme: no qualified burst", 0.0, 1)
 
 
