@@ -2,7 +2,7 @@
 
 These rules are research heuristics. Each class has an edge hypothesis, an
 entry, an invalidation, a horizon, and a size cap. They are not a promise of
-return. Version 0.48 adds adaptive volatility scaling, enhanced multi-TF consistency, cross-asset correlation filters, and tighter risk gates for several classes. See [v48-enhanced-strategies-and-cyber.md](v48-enhanced-strategies-and-cyber.md) for details.
+return. Version 0.49 adds tighter adaptive RSI bands, stronger relative volume and correlation gates, hardened chase filters, and consecutive-action anomaly awareness in the control plane. See [v49-enhanced-strategies-and-cyber.md](v49-enhanced-strategies-and-cyber.md) for details.
 
 Regime labels, from `regime.py`:
 
@@ -14,13 +14,13 @@ Regime labels, from `regime.py`:
 
 Hypothesis: liquid majors trend often enough that a fast EMA above a slow EMA
 is usable, unless RSI is stretched or the book is in stress. Mean reversion is
-allowed only in a range regime with BB squeeze. Volume, VWAP, Ichimoku, ADX, multi-TF, correlation, and other multi-factor confirmation required for the trend path. Adaptive vol scaling applied. Cap 8%. Horizon 8 or 20 bars. Research cost 8 bps round trip.
+allowed only in a range regime with BB squeeze. Volume, VWAP, Ichimoku, ADX, multi-TF, correlation, adaptive RSI, and other multi-factor confirmation required for the trend path. Adaptive vol scaling applied. Cap 8%. Horizon 8 or 20 bars. Research cost 8 bps round trip.
 
 ## Large-cap alt
 
 Hypothesis: breakouts without volume are noise, and stress-regime breakouts are
 gap risk. Entry needs a close above the prior five-bar high, volume at least
-1.2 times the recent average (relative to major preferred), Ichimoku and VWAP confirmation, BB preference, and a non-stress regime. Cap 4%. Cost 14 bps.
+1.6 times the recent average (relative to major preferred), Ichimoku and VWAP confirmation, BB preference (squeeze preferred), and a non-stress regime. Cap 4%. Cost 14 bps.
 
 ## Stablecoin
 
@@ -31,14 +31,14 @@ zero. Cost assumption is unused because no order is allowed.
 ## DeFi
 
 Hypothesis: trend signals in high realised-volatility or stress regimes are
-mostly gap risk. Stand aside if mean absolute return over 8 bars exceeds 6%
-or the regime is stress or ADX weak. Prefer above VWAP with volume-flow. Cap 2%. Cost 22 bps.
+mostly gap risk. Stand aside if mean absolute return over 8 bars exceeds 3.5%
+or the regime is stress or ADX weak (<20). Prefer above VWAP with volume-flow. Cap 2%. Cost 22 bps.
 
 ## Meme
 
 Hypothesis: most bursts are untradeable. A long is allowed only after a 15%
 four-bar burst, rising volume, a volume floor, correlation decay check, and an eight-bar extension that
-is still under 40% (tighter preferred). Horizon is 3 bars. Cap 0.5%. Cost 45 bps.
+is still under 25% (tighter preferred). Horizon is 3 bars. Cap 0.5%. Cost 45 bps.
 
 ## L2
 
@@ -48,7 +48,7 @@ benchmark, or a benchmark in stress, means no trade. Multi-TF and above VWAP pre
 ## RWA
 
 Hypothesis: tokenised real-world assets should be slow. An open-to-prior-close
-gap above 8%, or a stress regime, halts the idea. Volume and slow confirmation preferred. Cap 2%, horizon 24 bars.
+gap above 8%, or a stress regime, halts the idea. Volume and slow MACD confirmation preferred. Cap 2%, horizon 24 bars.
 Cost 12 bps.
 
 ## Perpetual
