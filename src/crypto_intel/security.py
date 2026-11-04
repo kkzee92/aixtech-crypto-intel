@@ -1,8 +1,8 @@
 """Cyber and data-security controls for the information system.
 
 This is a research control plane, not a certified security product.
-Version 0.45 expands secret patterns for Solana-style base58 keys, additional
-BIP39 variants, and common API formats. Strengthens redaction and zero-trust notes.
+Version 0.49 expands secret patterns for Cosmos/Terra-style keys and adds
+consecutive-action anomaly detection in the audit log.
 """
 
 from __future__ import annotations
@@ -30,6 +30,7 @@ SECRET_PATTERNS = (
     re.compile(r"\b(?:hardware[_-]?export|wallet[_-]?backup)\s*[:=]\s*['\"]?[A-Za-z0-9_\-]{20,}", re.IGNORECASE),
     re.compile(r"\b[1-9A-HJ-NP-Za-km-z]{64,88}\b"),  # Solana-style base58 private keys
     re.compile(r"(?i)(solana[_-]?key|private[_-]?key)\s*[:=]\s*['\"]?[1-9A-HJ-NP-Za-km-z]{32,}"),
+    re.compile(r"\b(?:cosmos|terra)[1-9A-HJ-NP-Za-km-z]{38,}\b", re.IGNORECASE),  # Cosmos/Terra-style
 )
 
 WALLET_PATTERN = re.compile(r"\b0x[a-fA-F0-9]{40}\b")
@@ -58,6 +59,7 @@ CLASSIFICATION = (
     DataClassification("session_cookie", "secret", "never stored"),
     DataClassification("bip39_seed", "secret", "never stored"),
     DataClassification("solana_key", "secret", "never stored"),
+    DataClassification("cosmos_key", "secret", "never stored"),
 )
 
 
@@ -104,6 +106,14 @@ def key_rotation_attest(old_digest: str, new_digest: str) -> str:
     return f"rotation:{integrity_digest(old_digest + new_digest)}"
 
 
+def consecutive_anomaly(events: list[AuditEvent], threshold: int = 5) -> bool:
+    """Detect rapid consecutive identical actions as a potential anomaly."""
+    if len(events) < threshold:
+        return False
+    last_actions = [e.action for e in events[-threshold:]]
+    return len(set(last_actions)) == 1
+
+
 class AuditLog:
     """Append-only hash chain with simulated lineage. Tampering changes the next digest."""
 
@@ -122,7 +132,8 @@ class AuditLog:
         else:
             self._consecutive = 1
             self._last_action = action
-        stamped = f"{safe_detail} | ts={datetime.now(timezone.utc).isoformat(timespec='seconds')} | lineage={lineage} | consec={self._consecutive} | {residency_stamp(region)}"
+        anomaly_flag = " | ANOMALY" if self._consecutive >= 5 else ""
+        stamped = f"{safe_detail} | ts={datetime.now(timezone.utc).isoformat(timespec='seconds')} | lineage={lineage} | consec={self._consecutive}{anomaly_flag} | {residency_stamp(region)}"
         sequence = len(self.events) + 1
         digest = hash_event(self._previous, sequence, action, stamped)
         event = AuditEvent(sequence, action, stamped, self._previous, digest)
@@ -138,3 +149,6 @@ class AuditLog:
                 return False
             previous = event.digest
         return True
+
+    def has_anomaly(self, threshold: int = 5) -> bool:
+        return consecutive_anomaly(self.events, threshold)
