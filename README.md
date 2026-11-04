@@ -5,7 +5,7 @@ evaluation. It does not place live orders, does not store exchange secrets, and
 is not financial advice.
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![version](https://img.shields.io/badge/version-0.47.0-blue)
+![version](https://img.shields.io/badge/version-0.48.0-blue)
 ![mode](https://img.shields.io/badge/execution-paper%20only-orange)
 ![Licence](https://img.shields.io/badge/licence-MIT-green)
 
@@ -13,7 +13,7 @@ is not financial advice.
 
 - Classifies markets into eight asset classes and applies a different research rule to each.
 - Labels each series trend, range, or stress, and stands aside in stress.
-- Scores a signal with multi-factor confirmation plus adaptive volatility scaling, trend-strength proxy, MACD-style histogram, multi-TF consistency, Supertrend-style proxy, Stochastic, Ichimoku cloud proxy, ADX, RSI divergence, Bollinger Band width, VWAP proxy, adaptive MTF filters, on-chain volume-flow proxies, and cross-asset correlation filters (v0.47), then a risk gate that can shrink or refuse it.
+- Scores a signal with multi-factor confirmation plus adaptive volatility scaling, trend-strength proxy, MACD-style histogram, multi-TF consistency, Supertrend-style proxy, Stochastic, Ichimoku cloud proxy, ADX, RSI divergence, Bollinger Band width, VWAP proxy, adaptive MTF filters, on-chain volume-flow proxies, cross-asset correlation filters, and enhanced adaptive risk gates (v0.48), then a risk gate that can shrink or refuse it.
 - Applies a declared round-trip cost by asset class in the paper backtest.
 - Writes a hash-chained audit log with UTC timestamps, lineage stamp (optional multi-hash sealed digest), consecutive-action counter, residency stamp, attests fixture sources, and redacts secret-like strings (expanded for extended keys, session cookies, hardware exports, BIP39, Solana-style keys, on-chain patterns, and partial seed fragments).
 - Backtests on **synthetic** candles only. Network access is injectable and unused by default.
@@ -31,7 +31,7 @@ is not financial advice.
 
 Full notes: [docs/asset-class-strategies.md](docs/asset-class-strategies.md).
 Security design: [docs/security-architecture.md](docs/security-architecture.md).
-Latest enhancements: [docs/v47-enhanced-correlation-and-cyber.md](docs/v47-enhanced-correlation-and-cyber.md).
+Latest enhancements: [docs/v48-enhanced-strategies-and-cyber.md](docs/v48-enhanced-strategies-and-cyber.md).
 
 ## Run
 
